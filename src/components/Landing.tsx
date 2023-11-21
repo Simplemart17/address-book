@@ -1,14 +1,28 @@
 'use client';
 
+import { useRouter } from 'next/navigation'
 import { BackgroundImage } from '@/components/BackgroundImage'
 import { Button } from '@/components/Button'
 import { Container } from '@/components/Container'
 import InputField from './InputField'
 import * as Yup from 'yup'
-
 import { useFormik } from 'formik'
+import axios from 'axios';
+
+type ResponseData = {
+    success: boolean;
+    message?: string;
+    error?: string;
+    user?: {
+      email: string;
+      user_type: string;
+      full_name: string;
+      user_id: string;
+  },
+}
 
 export function Landing(): JSX.Element {
+  const router = useRouter();
   const {
     handleChange,
     handleSubmit,
@@ -25,9 +39,14 @@ export function Landing(): JSX.Element {
       email: Yup.string().email('Enter a valid email address').required('Email cannot be empty'),
       fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
     }),
-    onSubmit: values => {
-      alert(JSON.stringify(values, null, 2));
-      console.log(isSubmitting)
+    onSubmit: async values => {
+      const { data } = await axios.post<ResponseData>("/api/users", values);
+      
+      if (data?.user?.user_type === "admin") {
+        router.push("/admin")
+      } else {
+        router.push("/contact-lists")
+      }
     },
   });
 
