@@ -192,7 +192,7 @@ export default function ContactList(): JSX.Element {
       <Container className="relative">
         <div className="py-10 px-28">
           <div className="flex items-center">
-            <h1 className="text-4xl font-extrabold mb-7">Address Book</h1>
+            <h1 className="text-4xl font-extrabold mb-7">{`${'Martins'}'s Address Book`}</h1>
             <p className="bg-gray-600 text-[#dbecff] items-center mb-7 ml-3 p-1 rounded-md text-sm font-mono font-bold"><span className="mr-1 font-bold">{people.length}</span>{people.length > 1 ? "contacts" : "contact"}</p>
           </div>
           <p className="ml-2">Use the search bar to look for your contact by typing the name</p>
