@@ -49,6 +49,7 @@ export function Landing(): JSX.Element {
       } else {
         router.push("/contact-lists")
       }
+      localStorage.setItem("email", values.email);
     },
   });
 
