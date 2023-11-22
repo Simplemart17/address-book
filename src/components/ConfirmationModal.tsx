@@ -10,9 +10,10 @@ interface ConfirmationModalProps {
   buttonAction: () => void;
   open: boolean;
   setOpen(value: boolean): void;
+  loading: boolean;
 }
 
-export default function ConfirmationModal({ open, setOpen, title, message, buttonAction }: ConfirmationModalProps): JSX.Element {
+export default function ConfirmationModal({ open, setOpen, title, message, buttonAction, loading }: ConfirmationModalProps): JSX.Element {
   const cancelButtonRef = useRef(null)
 
   return (
@@ -62,12 +63,14 @@ export default function ConfirmationModal({ open, setOpen, title, message, butto
                 <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto"
+                    className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto ${loading ? "cursor-not-allowed bg-red-300 hover:bg-red-300 " : "hover:bg-red-500 bg-red-600"}`}
                     onClick={buttonAction}
+                    disabled={loading}
                   >
-                    Delete
+                    {loading ? "Deleting..." : "Delete"}
                   </button>
                   <button
+                    disabled={loading}
                     type="button"
                     className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
                     onClick={() => setOpen(false)}
