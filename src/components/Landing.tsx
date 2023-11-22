@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation'
 import { BackgroundImage } from '@/components/BackgroundImage'
 import { Button } from '@/components/Button'
@@ -22,6 +23,7 @@ type ResponseData = {
 }
 
 export function Landing(): JSX.Element {
+  const [serverError, setServerError] = useState<string>("");
   const router = useRouter();
   const {
     handleChange,
@@ -54,6 +56,7 @@ export function Landing(): JSX.Element {
     <div className="relative py-20 sm:pb-24 sm:pt-36">
       <BackgroundImage className="-bottom-14 -top-36" />
       <Container className="relative">
+        <p className="text-center text-red-700 font-semibold animate-bounce">{serverError}</p>
         <div className="mx-auto max-w-2xl lg:max-w-4xl lg:px-12">
           <h1 className="font-display text-4xl font-bold tracking-tighter text-blue-600 sm:text-5xl text-center">
             <span className="sr-only">ContactRef - </span>Manage Your Contacts
