@@ -1,10 +1,12 @@
 import { HTMLProps } from "react"
 
 interface SelectInputProps extends HTMLProps<HTMLSelectElement> {
-  name: string
+  name: string;
+  error: boolean;
+  errorMessage: string;
 }
 
-export default function SelectInput({ name, ...props }: SelectInputProps):JSX.Element {
+export default function SelectInput({ name, error, errorMessage, ...props }: SelectInputProps):JSX.Element {
   return (
     <div className="mt-4">
       {props.label && <label>{props.label}</label>}
@@ -19,6 +21,9 @@ export default function SelectInput({ name, ...props }: SelectInputProps):JSX.El
         <option value="Colleague">Colleague</option>
         <option value="Mate">Mate</option>
       </select>
+      {error && <p className="mt-1 text-base text-red-600" id="email-error">
+        {errorMessage}
+      </p>}
     </div>
   )
 }
