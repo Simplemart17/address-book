@@ -23,7 +23,6 @@ export default function ContactList(): JSX.Element {
   const [contacts, setContacts] = useState<any>([]);
   const [singleContacts, setSingleContacts] = useState<any>({});
   const [docId, setDocId] = useState<string>("");
-  const [validationError, setValidationError] = useState<any>({ fileError: "" });
 
   const email = localStorage.getItem("email");
 
@@ -51,8 +50,6 @@ export default function ContactList(): JSX.Element {
   const {
     values,
     handleChange,
-    setValues,
-    setFieldValue,
     handleSubmit,
     isSubmitting,
     setSubmitting,
@@ -66,7 +63,6 @@ export default function ContactList(): JSX.Element {
       phone: singleContacts.phone ?? "",
       type: singleContacts.type ?? "",
       email: email,
-
     },
     validationSchema: Yup.object({
       fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
