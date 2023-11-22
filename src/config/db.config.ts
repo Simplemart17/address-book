@@ -1,4 +1,4 @@
-const { Client } = require('cassandra-driver')
+import { Client } from 'cassandra-driver'
 import getConfig from 'next/config'
 
 const {
@@ -13,15 +13,16 @@ const client = new Client({
     username: CLIENT_ID,
     password: CLIENT_SECRET,
   },
-})
+});
 
-const connection = async () => {
-  try {
-    await client.connect();
-    console.log('Database connected successfully');
-  } catch (error) {
-    console.log('Error connecting to the database: ' + error);
-  }
-}
+// async () => {
+//   try {
+//     await client.connect();
+//     console.log('Database connected successfully');
+//     await client.shutdown();
+//   } catch (error) {
+//     console.log('Error connecting to the database: ' + error);
+//   }
+// }
 
-export { connection, client }
+export { client }
