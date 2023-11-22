@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { v4 as uuidv4 } from 'uuid';
 import { serverApi } from '@/config/axiosInstance';
-import { json } from 'stream/consumers';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
@@ -16,10 +15,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         user_id: userId
       };
 
-      const { data } = await serverApi.get(`/users/${email}`);
+      const { data } = await serverApi.get(`/keyspaces/tabular/users/${email}`);
 
       if (data.length === 0) {
-        await await serverApi.post("/users", JSON.stringify(body));
+        await await serverApi.post("/keyspaces/tabular/users", JSON.stringify(body));
       }
 
       res.status(201).json({
@@ -33,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === "GET") {
       try {
-        const { data } = await serverApi.get('/users/rows');
+        const { data } = await serverApi.get('/keyspaces/tabular/users/rows');
 
         res.status(200).json({ success: true, data });
       } catch (error) {
