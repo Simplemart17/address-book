@@ -31,7 +31,7 @@ export default function ContactList(): JSX.Element {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data } = await axios.get("/api/contacts");
+      const { data } = await axios.get("/api/v1/contacts");
       const res = formatResponseObject(data?.data)
       setContacts(res);
       setLoading(false);
@@ -43,7 +43,7 @@ export default function ContactList(): JSX.Element {
   useEffect(() => {
     const fetchSingleData = async () => {
       if (docId) {
-        const { data } = await axios.get(`/api/contacts/${docId}`);
+        const { data } = await axios.get(`/api/v1/contacts/${docId}`);
         setSingleContacts(data?.data);
         setLoading(false);
       }
@@ -58,7 +58,7 @@ export default function ContactList(): JSX.Element {
       setEmail(email as string);
       
       if (email) {
-        const { data } = await axios.get(`/api/users/${email}`);
+        const { data } = await axios.get(`/api/v1/users/${email}`);
         setUserData(data?.data?.full_name);
         setLoading(false);
       }
@@ -95,10 +95,10 @@ export default function ContactList(): JSX.Element {
       try {
         let res;
         if (action === "add") {
-          const { data } = await axios.post("/api/contacts", values);
+          const { data } = await axios.post("/api/v1/contacts", values);
           res = data;
         } else {
-          const { data } = await axios.patch(`/api/contacts/${docId}`, values);
+          const { data } = await axios.patch(`/api/v1/contacts/${docId}`, values);
           res = data;
         }
 
@@ -117,7 +117,7 @@ export default function ContactList(): JSX.Element {
 
   const deleteContact = async () => {
     setSubmitting(true);
-    await axios.delete(`/api/contacts/${docId}`);
+    await axios.delete(`/api/v1/contacts/${docId}`);
     
     setUpdate(!update);
     setOpenDeleteDialog(false);
