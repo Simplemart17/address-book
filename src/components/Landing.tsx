@@ -40,26 +40,35 @@ export function Landing(): JSX.Element {
   } = useFormik({
     initialValues: {
       email: '',
-      fullName: ''
+      fullName: '',
+      password: ''
     },
     validationSchema: Yup.object({
       email: Yup.string()
       .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Enter a valid email address')
       .required('Email cannot be empty'),
+      password: Yup.string().required('Password cannot be empty'),
       fullName: Yup.string().when(([], schema) => {
         if (!isUser) {
           return schema.min(3, "Enter a minimum of 3 characters").required("Full name is a required field");
         }
         return schema.notRequired();
       }),
+
+      // password: Yup.string().when(([], schema) => {
+      //   if (!isUser) {
+      //     return schema.min(3, "Enter a minimum of 3 characters").required("Password is a required field");
+      //   }
+      //   return schema.notRequired();
+      // }),
     }),
     onSubmit: async values => {
       let resp;
       if (userCheck) {
-        const { data } = await axios.post<ResponseData>("/api/users", values);
+        const { data } = await axios.post<ResponseData>("/api/v1/users", values);
         resp = data;
       } else {
-        const { data } = await axios.get(`/api/users/${values.email}`);
+        const { data } = await axios.get(`/api/v1/users/${values.email}`);
         if (data?.data?.email) {
           setMessage("Please click continue button to proceed!");
           setUserCheck(true);
@@ -69,7 +78,6 @@ export function Landing(): JSX.Element {
         }
       }
       if (userCheck) {
-        console.log("I don't expect it works");
         if (resp?.user?.user_type === "admin") {
           router.push("/admin")
         } else {
@@ -112,6 +120,15 @@ export function Landing(): JSX.Element {
                   placeholder="Enter a valid email address"
                   error={!!errors.email}
                   errorMessage={errors.email}
+                  onChange={handleChange}
+                />
+                <InputField
+                  name={"password"}
+                  type="password"
+                  value={values.password}
+                  placeholder="Enter your password"
+                  error={!!errors.password}
+                  errorMessage={errors.password}
                   onChange={handleChange}
                 />
               </div>
