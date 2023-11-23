@@ -27,8 +27,7 @@ export default function ContactList(): JSX.Element {
   const [singleContacts, setSingleContacts] = useState<any>({});
   const [docId, setDocId] = useState<string>("");
   const [userData, setUserData] = useState<string>("");
-
-  const email = localStorage.getItem("email");
+  const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,6 +54,9 @@ export default function ContactList(): JSX.Element {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      const email = localStorage.getItem("email");
+      setEmail(email as string);
+      
       if (email) {
         const { data } = await axios.get(`/api/users/${email}`);
         setUserData(data?.data?.full_name);
