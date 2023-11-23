@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === "GET") {
       try {
-        const { data } = await serverApi.get('/namespaces/document/collections/contacts?page-size=10');
+        const { data } = await serverApi.get('/namespaces/document/collections/contacts?page-size=19');
 
         res.status(200).json({ success: true, data });
       } catch (error) {
