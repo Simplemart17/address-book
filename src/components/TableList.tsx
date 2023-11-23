@@ -10,7 +10,6 @@ import { useFormik } from 'formik';
 import { BackgroundImage } from './BackgroundImage';
 import * as Yup from 'yup';
 import ConfirmationModal from './ConfirmationModal';
-import { serverApi } from '@/config/axiosInstance';
 
 type userProps = {
   email: string;
@@ -38,7 +37,7 @@ export default function TableList(): JSX.Element {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data } = await axios.get('/api/users');
+      const { data } = await axios.get('/api/v1/users');
       setUsers(data?.data);
     }
 
@@ -48,7 +47,7 @@ export default function TableList(): JSX.Element {
   useEffect(() => {
     const fetchSingleData = async () => {
       if (userEmail) {
-        const { data } = await axios.get(`/api/users/${userEmail}`);
+        const { data } = await axios.get(`/api/v1/users/${userEmail}`);
         setSingleUser(data?.data);
       }
     }
@@ -84,7 +83,7 @@ export default function TableList(): JSX.Element {
       fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
     }),
     onSubmit: async (values: any) => {
-      const { data } = await axios.patch(`/api/users/${singleUser?.email}`, values);
+      const { data } = await axios.patch(`/api/v1/users/${singleUser?.email}`, values);
       if (data.success) {
         setOpenSlideOver(false);
         setUpdated(!updated);
@@ -97,7 +96,7 @@ export default function TableList(): JSX.Element {
     const mappedSelected = selectedUser.filter(x => x.user_type !== "admin").map(user => user.email);
 
     for (const user of mappedSelected) {
-      await axios.delete(`/api/users/${user}`);
+      await axios.delete(`/api/v1/users/${user}`);
     }
     setUpdated(!updated);
     setConfirmationDialog(false);
