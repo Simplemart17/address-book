@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation'
 import { BackgroundImage } from '@/components/BackgroundImage'
 import { Button } from '@/components/Button'
@@ -23,33 +23,60 @@ type ResponseData = {
 }
 
 export function Landing(): JSX.Element {
-  const [serverError, setServerError] = useState<string>("");
+  const [serverError, _setServerError] = useState<string>("");
+  const [isUser, setIsUser] = useState<boolean>(true);
+  const [userCheck, setUserCheck] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("");
   const router = useRouter();
+
   const {
     handleChange,
     handleSubmit,
     values,
     errors,
     isValid,
-    isSubmitting
+    isSubmitting,
+    dirty
   } = useFormik({
     initialValues: {
       email: '',
       fullName: ''
     },
     validationSchema: Yup.object({
-      email: Yup.string().email('Enter a valid email address').required('Email cannot be empty'),
-      fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
+      email: Yup.string()
+      .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Enter a valid email address')
+      .required('Email cannot be empty'),
+      fullName: Yup.string().when(([], schema) => {
+        if (!isUser) {
+          return schema.min(3, "Enter a minimum of 3 characters").required("Full name is a required field");
+        }
+        return schema.notRequired();
+      }),
     }),
     onSubmit: async values => {
-      const { data } = await axios.post<ResponseData>("/api/users", values);
-      
-      if (data?.user?.user_type === "admin") {
-        router.push("/admin")
+      let resp;
+      if (userCheck) {
+        const { data } = await axios.post<ResponseData>("/api/users", values);
+        resp = data;
       } else {
-        router.push("/contact-lists")
+        const { data } = await axios.get(`/api/users/${values.email}`);
+        if (data?.data?.email) {
+          setMessage("Please click continue button to proceed!");
+          setUserCheck(true);
+        } else {
+          setUserCheck(true);
+          setIsUser(false);
+        }
       }
-      localStorage.setItem("email", values.email);
+      if (userCheck) {
+        console.log("I don't expect it works");
+        if (resp?.user?.user_type === "admin") {
+          router.push("/admin")
+        } else {
+          router.push("/contact-lists")
+        }
+        localStorage.setItem("email", values.email);
+      }
     },
   });
 
@@ -68,7 +95,8 @@ export function Landing(): JSX.Element {
                 <p className="text-center">
                   Enter your details to get started
                 </p>
-                <InputField
+                <p className="text-center text-blue-500 text-sm font-semibold animate-bounce">{message}</p>
+                {!isUser && <InputField
                   name={"fullName"}
                   type="text"
                   value={values.fullName}
@@ -76,19 +104,21 @@ export function Landing(): JSX.Element {
                   error={!!errors.fullName}
                   errorMessage={errors.fullName}
                   onChange={handleChange}
-                />
+                />}
                 <InputField
                   name={"email"}
                   type="email"
                   value={values.email}
                   placeholder="Enter a valid email address"
-                  error={!isValid}
+                  error={!!errors.email}
                   errorMessage={errors.email}
                   onChange={handleChange}
                 />
               </div>
-              <Button type="submit" className={`mt-10 w-full ${isSubmitting ? 'cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`} onClick={() => handleSubmit()} disabled={isSubmitting}>
-                {isSubmitting ? "Loading..." : "Submit"}
+              <Button type="submit"
+                className={`mt-10 w-full ${isSubmitting || !(isValid && dirty) || (!isUser && !values.fullName) ? 'cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                onClick={() => handleSubmit()} disabled={isSubmitting || !(isValid && dirty)}>
+                {isSubmitting ? "Loading..." : userCheck ? "Continue" : "Submit"}
               </Button>
             </div>
           </div>
