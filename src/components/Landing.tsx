@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation'
 import { BackgroundImage } from '@/components/BackgroundImage'
 import { Button } from '@/components/Button'
