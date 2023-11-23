@@ -31,8 +31,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         type,
         url: url
       };
-      const contact = await await serverApi.post("/namespaces/document/collections/contacts", JSON.stringify(body));
-      console.log(contact);
+      await await serverApi.post("/namespaces/document/collections/contacts", JSON.stringify(body));
+
       res.status(201).json({
         success: true,
         message: "User created successfully",
