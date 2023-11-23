@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { TrashIcon, PencilSquareIcon } from '@heroicons/react/20/solid'
 import { ContactImage } from './ContactImage'
 import InputField from './InputField'
@@ -14,15 +14,19 @@ import ConfirmationModal from './ConfirmationModal';
 import axios from 'axios';
 import { formatResponseObject } from '@/utils';
 import * as Yup from 'yup';
+import EmptyRecord from './EmptyRecord';
+import { PageLoader } from './PageLoader';
 
 export default function ContactList(): JSX.Element {
   const [open, setOpen] = useState<boolean>(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState<boolean>(false);
   const [action, setAction] = useState<string>("");
   const [update, setUpdate] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [contacts, setContacts] = useState<any>([]);
   const [singleContacts, setSingleContacts] = useState<any>({});
   const [docId, setDocId] = useState<string>("");
+  const [userData, setUserData] = useState<string>("");
 
   const email = localStorage.getItem("email");
 
@@ -31,6 +35,7 @@ export default function ContactList(): JSX.Element {
       const { data } = await axios.get("/api/contacts");
       const res = formatResponseObject(data?.data)
       setContacts(res);
+      setLoading(false);
     }
 
     fetchData();
@@ -41,11 +46,24 @@ export default function ContactList(): JSX.Element {
       if (docId) {
         const { data } = await axios.get(`/api/contacts/${docId}`);
         setSingleContacts(data?.data);
+        setLoading(false);
       }
     }
 
     fetchSingleData();
   }, [docId]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (email) {
+        const { data } = await axios.get(`/api/users/${email}`);
+        setUserData(data?.data?.full_name);
+        setLoading(false);
+      }
+    }
+  
+    fetchUserData();
+  }, [email]);
 
   const {
     values,
@@ -63,6 +81,7 @@ export default function ContactList(): JSX.Element {
       phone: singleContacts.phone ?? "",
       type: singleContacts.type ?? "",
       email: email,
+      search: ""
     },
     validationSchema: Yup.object({
       fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
@@ -105,15 +124,24 @@ export default function ContactList(): JSX.Element {
     setSubmitting(false);
   }
 
+const filterContact = contacts.filter((contact: any) => contact.email === email);
+const searchedContacts = useMemo(
+  () =>
+  filterContact?.filter((data: any) =>
+      data.fullName.toLowerCase().includes(values.search.toLowerCase()),
+    ),
+  [values.search, filterContact],
+);
+
 
   return (
     <>
       <BackgroundImage className="-bottom-14 -top-36" />
       <Container className="relative">
-        <div className="py-10 px-28">
+        {loading ? <PageLoader /> : <div className="py-10 px-28">
           <div className="flex items-center">
-            <h1 className="text-4xl font-extrabold mb-7">{`${'Martins'}'s Address Book`}</h1>
-            <p className="bg-gray-600 text-[#dbecff] items-center mb-7 ml-3 p-1 rounded-md text-sm font-mono font-bold"><span className="mr-1 font-bold">{contacts.length}</span>{contacts.length > 1 ? "contacts" : "contact"}</p>
+            <h1 className="text-4xl font-extrabold mb-7">{`${userData}'s Address Book`}</h1>
+            <p className="bg-gray-600 text-[#dbecff] items-center mb-7 ml-3 p-1 rounded-md text-sm font-mono font-bold"><span className="mr-1 font-bold">{searchedContacts.length}</span>{searchedContacts.length > 1 ? "contacts" : "contact"}</p>
           </div>
           <p className="ml-2">Use the search bar to look for your contact by typing the name</p>
           <div className="lg:flex items-center justify-between mb-10 block">
@@ -121,6 +149,8 @@ export default function ContactList(): JSX.Element {
               name="search"
               placeholder="Search contact"
               type="text"
+              value={values.search}
+              onChange={handleChange}
             />
             <Button
               type="submit"
@@ -133,8 +163,9 @@ export default function ContactList(): JSX.Element {
               Add New Contact
             </Button>
           </div>
-          <ul role="list" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {contacts.map((person: any, index: number) => (
+          {!searchedContacts.length ? <EmptyRecord className="mt-24" message="You don not have any saved contact" /> :
+            <ul role="list" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {searchedContacts.map((person: any, index: number) => (
               <li key={index} className="col-span-1 divide-y divide-gray-200 rounded-lg bg-[#dbecff] shadow-lg">
                 <div className="flex w-full items-center justify-between space-x-6 p-6">
                   <div className="flex-1 truncate">
@@ -183,8 +214,8 @@ export default function ContactList(): JSX.Element {
                 </div>
               </li>
             ))}
-          </ul>
-        </div>
+          </ul>}
+        </div>}
       </Container>
       <SlideOver
         open={open} setOpen={setOpen}
