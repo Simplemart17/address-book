@@ -34,6 +34,7 @@ export default function TableList(): JSX.Element {
   const [userEmail, setUserEmail] = useState<string>("");
   const [updated, setUpdated] = useState<boolean>(false);
   const [confirmationDialog, setConfirmationDialog] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -92,6 +93,7 @@ export default function TableList(): JSX.Element {
   });
 
   const deleteUser = async () => {
+    setLoading(true);
     const mappedSelected = selectedUser.filter(x => x.user_type !== "admin").map(user => user.email);
 
     for (const user of mappedSelected) {
@@ -99,6 +101,8 @@ export default function TableList(): JSX.Element {
     }
     setUpdated(!updated);
     setConfirmationDialog(false);
+    setSelectedUser([]);
+    setLoading(false);
   }
 
   return (
@@ -134,6 +138,7 @@ export default function TableList(): JSX.Element {
                             ref={checkbox}
                             checked={checked}
                             onChange={toggleAll}
+                            disabled={users.length === 1}
                           />
                         </th>
                         <th scope="col" className="min-w-[12rem] py-3.5 pr-3 text-left text-sm font-semibold text-gray-900">
@@ -142,13 +147,16 @@ export default function TableList(): JSX.Element {
                         <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                           Email
                         </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Type
+                        </th>
                         <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-3">
                           <span className="sr-only">Edit</span>
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {users.filter(x => x.user_type !== "admin").map((user: any, index: number) => (
+                      {users.map((user: any, index: number) => (
                         <tr key={index} className={selectedUser.includes(user) ? 'bg-gray-50' : undefined}>
                           <td className="relative px-7 sm:w-12 sm:px-6">
                             {selectedUser.includes(user) && (
@@ -156,6 +164,7 @@ export default function TableList(): JSX.Element {
                             )}
                             <input
                               type="checkbox"
+                              disabled={user.user_type === "admin"}
                               className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
                               value={user.email}
                               checked={selectedUser.includes(user)}
@@ -177,6 +186,7 @@ export default function TableList(): JSX.Element {
                             {user.full_name}
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.email}</td>
+                          <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 capitalize">{user.user_type}</td>
                           <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-3">
                             <a
                               onClick={() => {
@@ -226,7 +236,7 @@ export default function TableList(): JSX.Element {
         title="Delete Users"
         message="Are you sure you want to delete the selected user?"
         buttonAction={deleteUser}
-        loading={isSubmitting}
+        loading={loading}
       />
     </div>
   )
