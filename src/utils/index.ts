@@ -32,7 +32,6 @@ const IMAGE_URL: string[] = [
 
 const randomizeImageUrl = () => {
   const url = Math.floor(Math.random() * IMAGE_URL.length);
-  console.log(url, "what value");
   return IMAGE_URL[url];
 }
 
