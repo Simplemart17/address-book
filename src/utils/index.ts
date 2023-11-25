@@ -1,3 +1,6 @@
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken'
+
 function formatResponseObject (res: any): any {
   let dataArray:any = [];
 
@@ -43,4 +46,33 @@ const debounce = (fn: Function, ms = 300) => {
   };
 };
 
-export { formatResponseObject, randomizeImageUrl, debounce }
+const hashPassword = async (password: string) => {
+  const hashedPassword = await bcrypt.hash(
+    password,
+    Number(process.env.SALT_ROUNDS),
+  );
+  return hashedPassword;
+};
+
+function generateRandomNumber() {
+  const randomNumber = Math.floor(Math.random() * 900000) + 100000;
+
+  return randomNumber;
+}
+
+const generateToken = (user: any) => jwt.sign({
+  data: user,
+  exp: '7d'
+}, process.env.VERIFY_SECRET as string);
+
+const decoded = (token: string) => jwt.verify(token, process.env.VERIFY_SECRET as string);
+
+export {
+  formatResponseObject,
+  randomizeImageUrl,
+  debounce,
+  hashPassword,
+  generateRandomNumber,
+  generateToken,
+  decoded
+};
