@@ -17,3 +17,20 @@ serverApi.interceptors.response.use(
     return err.response
   }
 )
+
+const v2Headers = {
+  Accept: 'application/json',
+  'Content-Type': 'application/json',
+  // 'X-Access-Token': process.env.CLIENT_TOKEN
+}
+
+export const v2Api = axios.create({
+  headers,
+});
+
+v2Api.interceptors.response.use(
+  (response) => response,
+  (err) => {
+    return err.response
+  }
+)
