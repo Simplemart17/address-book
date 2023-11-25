@@ -8,25 +8,35 @@ import { Container } from '@/components/Container'
 import InputField from './InputField'
 import * as Yup from 'yup'
 import { useFormik } from 'formik'
-import axios from 'axios';
+import Link from 'next/link';
+import FormModal from './modals/FormModal';
+import { v2Api } from '@/config/axiosInstance';
+import Notification from './modals/notification';
 
-type ResponseData = {
+interface ResponseData {
     success: boolean;
     message?: string;
     error?: string;
-    user?: {
-      email: string;
-      user_type: string;
-      full_name: string;
-      user_id: string;
-  },
+    email: string;
+    user_type: string;
+    full_name: string;
+    user_id: string;
+    verified: boolean;
+}
+
+type NotificationProps = {
+  status: boolean;
+  message: string;
 }
 
 export function Landing(): JSX.Element {
-  const [serverError, _setServerError] = useState<string>("");
+  const [serverError, setServerError] = useState<string>("");
   const [isUser, setIsUser] = useState<boolean>(true);
   const [userCheck, setUserCheck] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>("");
+  const [openModal, setOpenModal] = useState<boolean>(false);
+  const [notification, setNotification] = useState<NotificationProps>({status: false, message: ""});
+  const [openVerified, setOpenVerified] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
 
   const {
@@ -36,57 +46,107 @@ export function Landing(): JSX.Element {
     errors,
     isValid,
     isSubmitting,
-    dirty
+    dirty,
+    resetForm
   } = useFormik({
     initialValues: {
       email: '',
       fullName: '',
-      password: ''
+      password: '',
+      confirmPassword: '',
+      code: ''
     },
     validationSchema: Yup.object({
       email: Yup.string()
       .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Enter a valid email address')
       .required('Email cannot be empty'),
-      password: Yup.string().required('Password cannot be empty'),
       fullName: Yup.string().when(([], schema) => {
         if (!isUser) {
           return schema.min(3, "Enter a minimum of 3 characters").required("Full name is a required field");
         }
         return schema.notRequired();
       }),
-
-      // password: Yup.string().when(([], schema) => {
-      //   if (!isUser) {
-      //     return schema.min(3, "Enter a minimum of 3 characters").required("Password is a required field");
-      //   }
-      //   return schema.notRequired();
-      // }),
+      password: Yup.string().matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+        'password must be at least 8 characters, at least one lower case letter, capital letter, number, and special character',
+      ).required('Password cannot be empty'),
+      confirmPassword: Yup.string().when(([], schema) => {
+        if (!isUser) {
+          return schema.test('equal', 'Passwords do not match!', function (v) {
+            const ref = Yup.ref('password');
+            return v === this.resolve(ref);
+          })
+          .required('This field is required')
+        }
+        return schema.notRequired();
+      }),
+      code: Yup.string().when(([], schema) => {
+        if (openVerified) {
+          return schema.matches(/^[0-9]{6}$/, "Enter only 6 digits number").required("This is a required field");
+        }
+        return schema.notRequired();
+      }),
     }),
     onSubmit: async values => {
-      let resp;
-      if (userCheck) {
-        const { data } = await axios.post<ResponseData>("/api/v1/users", values);
-        resp = data;
-      } else {
-        const { data } = await axios.get(`/api/v1/users/${values.email}`);
-        if (data?.data?.email) {
-          setMessage("Please click continue button to proceed!");
-          setUserCheck(true);
+      try {
+        if (userCheck) {
+          const { data } = await v2Api.post<ResponseData>("/api/v2/users", values);
+          if (data.success) {
+            setNotification({status: data.success, message: data.message as string});
+            setOpenModal(true);
+            setOpenVerified(true);
+          } else {
+            setNotification({status: data.success, message: data.message as string});
+            setOpenModal(true);
+          }
         } else {
-          setUserCheck(true);
-          setIsUser(false);
+          const { data } = await v2Api.post<ResponseData>("/api/v2/users/login", values);
+
+          if (data?.success) {
+            if (data?.user_type === "admin") {
+              router.push("/admin");
+            } else if (data?.user_type === "user" && data?.verified) {
+              router.push("/contact-lists");
+            } else {
+              setOpenVerified(true);
+            }
+          } else {
+            if (data.message?.includes("Account not found")) {
+              setUserCheck(true);
+              setIsUser(false);
+              setNotification({status: data.success, message: data.message});
+              setOpenModal(true);
+            } else {
+              setNotification({status: data.success, message: data.message as string});
+              setOpenModal(true);
+            }
+          }
         }
-      }
-      if (userCheck) {
-        if (resp?.user?.user_type === "admin") {
-          router.push("/admin")
-        } else {
-          router.push("/contact-lists")
-        }
-        localStorage.setItem("email", values.email);
+          // localStorage.setItem("email", values.email);
+        
+      } catch (error) {
+        setNotification({status: false, message: "Something went wrong!"});
+        setOpenModal(true);
       }
     },
+
+    
   });
+
+  const accountVerification = async () => {
+    setLoading(true);
+    const { data } = await v2Api.post("/api/v2/users/verify", {email: values.email, code: values.code});
+    if (!data.success) {
+      setOpenVerified(false);
+      setNotification({status: data.success, message: data.message as string});
+      setOpenModal(true);
+    }
+    setNotification({status: data.success, message: "Verified successfully! Please login"});
+    setOpenModal(true);
+    setOpenVerified(false);
+    setLoading(false);
+    resetForm();
+  }
 
   return (
     <div className="relative py-20 sm:pb-24 sm:pt-36">
@@ -103,7 +163,6 @@ export function Landing(): JSX.Element {
                 <p className="text-center">
                   Enter your details to get started
                 </p>
-                <p className="text-center text-blue-500 text-sm font-semibold animate-bounce">{message}</p>
                 {!isUser && <InputField
                   name={"fullName"}
                   type="text"
@@ -112,6 +171,7 @@ export function Landing(): JSX.Element {
                   error={!!errors.fullName}
                   errorMessage={errors.fullName}
                   onChange={handleChange}
+                  label="Full Name*"
                 />}
                 <InputField
                   name={"email"}
@@ -121,6 +181,7 @@ export function Landing(): JSX.Element {
                   error={!!errors.email}
                   errorMessage={errors.email}
                   onChange={handleChange}
+                  label="Email Address*"
                 />
                 <InputField
                   name={"password"}
@@ -130,7 +191,28 @@ export function Landing(): JSX.Element {
                   error={!!errors.password}
                   errorMessage={errors.password}
                   onChange={handleChange}
+                  label="Password*"
                 />
+                {!isUser && <InputField
+                  name={"confirmPassword"}
+                  type="password"
+                  value={values.confirmPassword}
+                  placeholder="Re-enter your password"
+                  error={!!errors.confirmPassword}
+                  errorMessage={errors.confirmPassword}
+                  onChange={handleChange}
+                  label="Confirm Password*"
+                />}
+              </div>
+              <div className="mt-1 text-sm">
+                <span>If you have a verification code?</span>
+                <Link
+                  href="#"
+                  className="ml-1 hover:underline hover:font-semibold text-blue-500"
+                  onClick={() => setOpenVerified(!openVerified)}
+                >
+                Click here!
+                </Link>
               </div>
               <Button type="submit"
                 className={`mt-10 w-full ${isSubmitting || !(isValid && dirty) || (!isUser && !values.fullName) ? 'cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
@@ -141,6 +223,45 @@ export function Landing(): JSX.Element {
           </div>
           </div>
       </Container>
+      <FormModal
+        open={openVerified}
+        setOpen={() => setOpenVerified(!openVerified)}
+        title="Account Verification"
+        primaryBtn={loading ? "Submitting" : "Submit"}
+        onClickPrimaryBtn={accountVerification}
+        loading={loading}
+        disabled ={!(values.email && values.code)}
+      >
+        <div className="text-left">
+          {/* <p className="mt-5 text-red-600 text-md text-bold animate-bounce text-center">{notification.message}</p> */}
+          <InputField
+            name={"email"}
+            type="email"
+            value={values.email}
+            placeholder="Enter your email address"
+            error={!!errors.email}
+            errorMessage={errors.email}
+            onChange={handleChange}
+            label="Email Address*"
+          />
+          <InputField
+            name={"code"}
+            type="text"
+            value={values.code}
+            placeholder="Enter verification code"
+            error={!!errors.code}
+            errorMessage={errors.code}
+            onChange={handleChange}
+            label="Account verification code"
+          />
+        </div>
+      </FormModal>
+      <Notification
+        show={openModal}
+        setShow={setOpenModal}
+        status={notification.status}
+        message={notification.message}
+      />
     </div>
   )
 }
