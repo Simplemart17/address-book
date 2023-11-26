@@ -14,12 +14,10 @@ const ContactSchema = new mongoose.Schema<ContactsProps>({
     type: String,
     required: [true, 'Please provide a valid email address'],
     index: true,
-    unique: true
   },
   fullName: {
     type: String,
     required: [true, "Please provide the contact's full name"],
-    maxlength: [50, "Full Name cannot be more than 50 characters"],
   },
   address: {
     type: String,
