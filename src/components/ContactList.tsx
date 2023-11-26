@@ -15,7 +15,7 @@ import * as Yup from 'yup';
 import EmptyRecord from './EmptyRecord';
 import { PageLoader } from './PageLoader';
 import { v2Api } from '@/config/axiosInstance';
-import Notification from './modals/Notification';
+import Notification from './modals/NotificationModal';
 import { NotificationProps } from './Landing';
 import { useRouter } from 'next/navigation';
 

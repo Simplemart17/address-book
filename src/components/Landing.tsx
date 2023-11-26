@@ -11,7 +11,7 @@ import { useFormik } from 'formik'
 import Link from 'next/link';
 import FormModal from './modals/FormModal';
 import { v2Api } from '@/config/axiosInstance';
-import Notification from './modals/Notification';
+import Notification from './modals/NotificationModal';
 
 interface ResponseData {
     success: boolean;

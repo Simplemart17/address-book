@@ -13,7 +13,7 @@ import ConfirmationModal from './modals/ConfirmationModal';
 import { useRouter } from 'next/navigation';
 import { v2Api } from '@/config/axiosInstance';
 import { PageLoader } from './PageLoader';
-import Notification from './modals/Notification';
+import Notification from './modals/NotificationModal';
 import { NotificationProps } from './Landing';
 
 type userProps = {
