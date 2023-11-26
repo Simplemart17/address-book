@@ -150,6 +150,9 @@ export function Landing(): JSX.Element {
       setOpenModal(true);
     }
     setNotification({status: data.success, message: "Verified successfully! Please login"});
+
+    localStorage.setItem("email", values.email);
+    router.push("/contact-lists");
     setOpenModal(true);
     setOpenVerified(false);
     setLoading(false);
