@@ -123,12 +123,14 @@ export default function TableList(): JSX.Element {
 
   const deleteUser = async () => {
     setLoading(true);
-    const mappedSelected = selectedUser.filter(x => x.user_type !== "admin").map(user => user.email);
+    const mappedSelected = selectedUser.filter(x => x.user_type !== "admin").map(user => user.user_id);
 
     for (const user of mappedSelected) {
       await axios.delete(`/api/v2/users/${user}`);
     }
     setUpdated(!updated);
+    setNotification({ status: true, message: "Deleted successfully"});
+    setOpenModal(true);
     setConfirmationDialog(false);
     setSelectedUser([]);
     setLoading(false);
