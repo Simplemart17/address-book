@@ -170,7 +170,7 @@ const searchedContacts = useMemo(
 );
 
   return (
-    <>
+    <div className="relative py-20 sm:pb-24 sm:pt-36">
       <BackgroundImage className="-bottom-14 -top-36" />
       <Container className="relative">
         {loading ? <PageLoader /> : <div className="py-10 px-28">
@@ -316,6 +316,6 @@ const searchedContacts = useMemo(
         status={notification.status}
         message={notification.message}
       />
-    </>
+    </div>
   )
 }
