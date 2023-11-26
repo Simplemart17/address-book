@@ -11,16 +11,18 @@ export function Footer():JSX.Element {
           <p className="ml-2 text-slate-400">Made by Group 8</p>
         </div>
       </Container>
-      <div className="flex justify-center text-white font-bold">
+      <div className="flex justify-evenly text-white font-bold">
+      <div className="py-4 pr-1 ">
+          <p>Manish Mahato</p>
+          <p>Kishor Gurung</p>
+        </div>
         <div className="py-4 pr-1 ">
           <p>Martins Aloba</p>
-          <p>Manish Mahato</p>
           <p>Bibek Budhathoki</p>
         </div>
         <div className="pt-4 pl-14">
           <p>Dipendra Kunwar</p>
           <p>Nabin Shrestha</p>
-          <p>Kishor Gurung</p>
         </div>
       </div>
     </footer>
