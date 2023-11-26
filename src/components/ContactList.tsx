@@ -34,6 +34,12 @@ export default function ContactList(): JSX.Element {
   const [openModal, setOpenModal] = useState<boolean>(false);
   const router = useRouter();
 
+  const mapColor: any = {
+    Friend: " bg-green-50 text-green-700 ",
+    Colleague: " bg-blue-100 text-blue-700 ",
+    Mate: " bg-purple-50 text-purple-700 "
+  }
+
   useLayoutEffect(() => {
     const email = localStorage.getItem('email');
 
@@ -200,7 +206,7 @@ const searchedContacts = useMemo(
                   <div className="flex-1 truncate">
                     <div className="flex items-center space-x-3">
                       <h3 className="truncate text-sm font-medium text-gray-900">{person.fullName}</h3>
-                      <span className="inline-flex flex-shrink-0 items-center rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                      <span className={`inline-flex flex-shrink-0 items-center rounded-full ${mapColor[person.type]}  px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ring-green-600/20`}>
                         {person.type}
                       </span>
                     </div>
