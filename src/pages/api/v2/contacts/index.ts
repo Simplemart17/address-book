@@ -1,54 +1,43 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { serverApi } from '@/config/axiosInstance';
+import { NextApiRequest, NextApiResponse } from 'next'
+import mongoDbConnect from '@/config/mongoDbConnection.config'
+import Contact from '@/models/Contacts';
 import { randomizeImageUrl } from '@/utils';
 
-type ReqBodyProps = {
-  email: string;
-  fullName: string;
-  address: string;
-  phone: string;
-  type: string;
-  url: string;
-};
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const { method, query } = req
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    try {
-      const url = randomizeImageUrl();
-      const {
-        email,
-        fullName,
-        address,
-        phone,
-        type,
-      } = req.body;
+  await mongoDbConnect();
 
-      const body: ReqBodyProps = {
-        email,
-        address,
-        fullName,
-        phone,
-        type,
-        url: url
-      };
-      await await serverApi.post("/namespaces/document/collections/contacts", JSON.stringify(body));
-
-      res.status(201).json({
-        success: true,
-        message: "User created successfully",
-      });
-    } catch (error) {
-      console.log(error);
-      res.status(500).json({ success: false, error: "Something went wrong"});
-    }
-  } else if (req.method === "GET") {
+  switch (method) {
+    case 'GET':
       try {
-        const { data } = await serverApi.get('/namespaces/document/collections/contacts?page-size=19');
+        const contacts = await Contact.find({ email: query.email });
 
-        res.status(200).json({ success: true, data });
+        res.status(200).json({ success: true, data: contacts });
       } catch (error) {
-        console.log(error);
-        res.status(500).json({ success: false, error: "Something went wrong"});
+        res.status(400).json({ success: false });
       }
+      break
+    case 'POST':
+      try {
+        const contact = await Contact.create({
+          ...req.body, url: randomizeImageUrl()
+        });
+
+        res.status(201).json({ success: true, ...contact._doc });
+      } catch (error: any) {
+        if (error.message.includes("phone_1 dup key")) {
+          res.status(400).json({ success: false, message: "Phone number already exist" });
+        }
+
+        res.status(500).json({ success: false, message: "Something went wrong!" });
+      }
+      break
+    default:
+      res.status(400).json({ success: false, message: "Something went wrong!" });
+      break
   }
 }
