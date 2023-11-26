@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useLayoutEffect } from 'react';
 import { TrashIcon, PencilSquareIcon } from '@heroicons/react/20/solid'
 import { ContactImage } from './ContactImage'
 import InputField from './InputField'
@@ -10,12 +10,14 @@ import { BackgroundImage } from './BackgroundImage'
 import SlideOver from './SlideOver'
 import { useFormik } from 'formik';
 import SelectInput from './SelectInput';
-import ConfirmationModal from './ConfirmationModal';
-import axios from 'axios';
-import { formatResponseObject } from '@/utils';
+import ConfirmationModal from './modals/ConfirmationModal';
 import * as Yup from 'yup';
 import EmptyRecord from './EmptyRecord';
 import { PageLoader } from './PageLoader';
+import { v2Api } from '@/config/axiosInstance';
+import Notification from './modals/Notification';
+import { NotificationProps } from './Landing';
+import { useRouter } from 'next/navigation';
 
 export default function ContactList(): JSX.Element {
   const [open, setOpen] = useState<boolean>(false);
@@ -28,22 +30,40 @@ export default function ContactList(): JSX.Element {
   const [docId, setDocId] = useState<string>("");
   const [userData, setUserData] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [notification, setNotification] = useState<NotificationProps>({status: false, message: ""});
+  const [openModal, setOpenModal] = useState<boolean>(false);
+  const router = useRouter();
+
+  useLayoutEffect(() => {
+    const email = localStorage.getItem('email');
+
+    if (!email) {
+      router.push("/");
+    }
+  }, [router]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data } = await axios.get("/api/v1/contacts");
-      const res = formatResponseObject(data?.data)
-      setContacts(res);
+      let resp;
+      const userEmail = localStorage.getItem('email');
+  
+        if (userEmail) {
+          setEmail(userEmail);
+          const { data } = await v2Api.get(`/api/v2/contacts?email=${userEmail}`);
+          resp = data;
+        }
+
+      setContacts(resp?.data);
       setLoading(false);
     }
 
     fetchData();
-  }, [update]);
+  }, [email, update]);
 
   useEffect(() => {
     const fetchSingleData = async () => {
       if (docId) {
-        const { data } = await axios.get(`/api/v1/contacts/${docId}`);
+        const { data } = await v2Api.get(`/api/v2/contacts/${docId}`);
         setSingleContacts(data?.data);
         setLoading(false);
       }
@@ -54,11 +74,8 @@ export default function ContactList(): JSX.Element {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const email = localStorage.getItem("email");
-      setEmail(email as string);
-      
       if (email) {
-        const { data } = await axios.get(`/api/v1/users/${email}`);
+        const { data } = await v2Api.get(`/api/v2/users/${email}`);
         setUserData(data?.data?.full_name);
         setLoading(false);
       }
@@ -88,26 +105,36 @@ export default function ContactList(): JSX.Element {
     validationSchema: Yup.object({
       fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
       address: Yup.string().min(10, "The address is too short!").required('This field is required'),
-      phone: Yup.string().min(10, "Enter a valid phone number").required('This field is required'),
+      phone: Yup.string().matches(/^[0-9]{10,11}$/, "Enter only numbers, maximum of eleven digits").required('This field is required'),
       type: Yup.string().required('This field is required'),
     }),
     onSubmit: async values => {
       try {
-        let res;
         if (action === "add") {
-          const { data } = await axios.post("/api/v1/contacts", values);
-          res = data;
+          const { data } = await v2Api.post("/api/v2/contacts", values);
+          if (data.success) {
+            setNotification({ status: data.success, message: "Contact added successfully!" });
+            setOpen(false);
+            setOpenModal(true);
+            setUpdate(!update);
+            resetForm();
+          } else {
+            setNotification({ status: data.success, message: data.message });
+            setOpen(false);
+            setOpenModal(true);
+            resetForm();
+          }
         } else {
-          const { data } = await axios.patch(`/api/v1/contacts/${docId}`, values);
-          res = data;
-        }
-
-        if (res.success) {
-          setUpdate(!update);
-          setOpen(false);
-          resetForm();
-          setDocId("");
-          setSingleContacts({});
+          const { data } = await v2Api.patch(`/api/v2/contacts/${docId}`, values);
+          if (data.success) {
+            setUpdate(!update);
+            setOpen(false);
+            resetForm();
+            setDocId("");
+            setSingleContacts({});
+            setNotification({ status: true, message: "Contact updated successfully!" });
+            setOpenModal(true);
+          }
         }
       } catch (error) {
         console.log(error);
@@ -117,24 +144,24 @@ export default function ContactList(): JSX.Element {
 
   const deleteContact = async () => {
     setSubmitting(true);
-    await axios.delete(`/api/v1/contacts/${docId}`);
+    await v2Api.delete(`/api/v2/contacts/${docId}`);
     
     setUpdate(!update);
     setOpenDeleteDialog(false);
     setDocId("");
     setSingleContacts({});
     setSubmitting(false);
+    setNotification({ status: true, message: "Contact deleted successfully!" });
+    setOpenModal(true);
   }
 
-const filterContact = contacts.filter((contact: any) => contact.email === email);
 const searchedContacts = useMemo(
   () =>
-  filterContact?.filter((data: any) =>
+  contacts?.filter((data: any) =>
       data.fullName.toLowerCase().includes(values.search.toLowerCase()),
     ),
-  [values.search, filterContact],
+  [values.search, contacts],
 );
-
 
   return (
     <>
@@ -143,7 +170,7 @@ const searchedContacts = useMemo(
         {loading ? <PageLoader /> : <div className="py-10 px-28">
           <div className="flex items-center">
             <h1 className="text-4xl font-extrabold mb-7">{`${userData}'s Address Book`}</h1>
-            <p className="bg-gray-600 text-[#dbecff] items-center mb-7 ml-3 p-1 rounded-md text-sm font-mono font-bold"><span className="mr-1 font-bold">{searchedContacts.length}</span>{searchedContacts.length > 1 ? "contacts" : "contact"}</p>
+            <p className="bg-gray-600 text-[#dbecff] items-center mb-7 ml-3 p-1 rounded-md text-sm font-mono font-bold"><span className="mr-1 font-bold">{searchedContacts?.length}</span>{searchedContacts?.length > 1 ? "contacts" : "contact"}</p>
           </div>
           <p className="ml-2">Use the search bar to look for your contact by typing the name</p>
           <div className="lg:flex items-center justify-between mb-10 block">
@@ -165,7 +192,7 @@ const searchedContacts = useMemo(
               Add New Contact
             </Button>
           </div>
-          {!searchedContacts.length ? <EmptyRecord className="mt-24" message="You don not have any saved contact" /> :
+          {!searchedContacts?.length ? <EmptyRecord className="mt-24" message="You don not have any saved contact" /> :
             <ul role="list" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {searchedContacts.map((person: any, index: number) => (
               <li key={index} className="col-span-1 divide-y divide-gray-200 rounded-lg bg-[#dbecff] shadow-lg">
@@ -188,7 +215,7 @@ const searchedContacts = useMemo(
                       <a
                         onClick={() => {
                           setOpenDeleteDialog(true);
-                          setDocId(person.documentId);
+                          setDocId(person._id);
                         }}
                         className="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 text-sm font-semibold text-gray-900"
                       >
@@ -201,7 +228,7 @@ const searchedContacts = useMemo(
                         onClick={() => {
                           setOpen(true);
                           setAction("edit");
-                          setDocId(person.documentId);
+                          setDocId(person._id);
                         }}
                         className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-br-lg border border-transparent py-4 text-sm font-semibold text-gray-900"
                       >
@@ -276,6 +303,12 @@ const searchedContacts = useMemo(
         message="Are you sure you want to delete this contact"
         buttonAction={deleteContact}
         loading={isSubmitting}
+      />
+      <Notification
+        show={openModal}
+        setShow={setOpenModal}
+        status={notification.status}
+        message={notification.message}
       />
     </>
   )
