@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'
 import { BackgroundImage } from '@/components/BackgroundImage'
 import { Button } from '@/components/Button'
@@ -11,7 +11,7 @@ import { useFormik } from 'formik'
 import Link from 'next/link';
 import FormModal from './modals/FormModal';
 import { v2Api } from '@/config/axiosInstance';
-import Notification from './modals/notification';
+import Notification from './modals/Notification';
 
 interface ResponseData {
     success: boolean;
@@ -24,7 +24,7 @@ interface ResponseData {
     verified: boolean;
 }
 
-type NotificationProps = {
+export type NotificationProps = {
   status: boolean;
   message: string;
 }
@@ -38,6 +38,14 @@ export function Landing(): JSX.Element {
   const [openVerified, setOpenVerified] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const email = localStorage.getItem('email');
+
+    if (email) {
+      router.push("/contact-lists");
+    }
+  }, [router]);
 
   const {
     handleChange,
@@ -67,7 +75,7 @@ export function Landing(): JSX.Element {
         return schema.notRequired();
       }),
       password: Yup.string().matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
         'password must be at least 8 characters, at least one lower case letter, capital letter, number, and special character',
       ).required('Password cannot be empty'),
       confirmPassword: Yup.string().when(([], schema) => {
@@ -104,8 +112,10 @@ export function Landing(): JSX.Element {
 
           if (data?.success) {
             if (data?.user_type === "admin") {
+              localStorage.setItem("email", values.email);
               router.push("/admin");
             } else if (data?.user_type === "user" && data?.verified) {
+              localStorage.setItem("email", values.email);
               router.push("/contact-lists");
             } else {
               setOpenVerified(true);
@@ -122,8 +132,6 @@ export function Landing(): JSX.Element {
             }
           }
         }
-          // localStorage.setItem("email", values.email);
-        
       } catch (error) {
         setNotification({status: false, message: "Something went wrong!"});
         setOpenModal(true);
