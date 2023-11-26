@@ -32,10 +32,12 @@ async function mongoDbConnect() {
   try {
     cached.conn = await cached.promise
   } catch (e) {
+    console.log("connection error: ", e)
     cached.promise = null
     throw e
   }
 
+  console.log("connection established");
   return cached.conn
 }
 
