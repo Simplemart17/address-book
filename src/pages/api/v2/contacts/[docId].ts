@@ -25,7 +25,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { docId } = req.query;
 
         const contact = await Contacts.findById(docId);
-        console.log(contact)
 
         res.status(200).json({ success: true, data: contact?._doc });
       } catch (error) {
