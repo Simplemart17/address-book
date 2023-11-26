@@ -23,7 +23,7 @@ export default function InputField({name, type, error, placeholder, errorMessage
           placeholder={placeholder}
           aria-invalid="true"
         />
-        {error && <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+        {error && <div className="pointer-events-none absolute inset-y-0 top-[2rem] right-0 flex items-center pr-3">
           <ExclamationCircleIcon className="h-5 w-5 text-red-600" aria-hidden="true" />
         </div>}
       </div>

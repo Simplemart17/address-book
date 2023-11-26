@@ -9,7 +9,12 @@ import InputField from './InputField';
 import { useFormik } from 'formik';
 import { BackgroundImage } from './BackgroundImage';
 import * as Yup from 'yup';
-import ConfirmationModal from './ConfirmationModal';
+import ConfirmationModal from './modals/ConfirmationModal';
+import { useRouter } from 'next/navigation';
+import { v2Api } from '@/config/axiosInstance';
+import { PageLoader } from './PageLoader';
+import Notification from './modals/Notification';
+import { NotificationProps } from './Landing';
 
 type userProps = {
   email: string;
@@ -33,11 +38,34 @@ export default function TableList(): JSX.Element {
   const [userEmail, setUserEmail] = useState<string>("");
   const [updated, setUpdated] = useState<boolean>(false);
   const [confirmationDialog, setConfirmationDialog] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [notification, setNotification] = useState<NotificationProps>({status: false, message: ""});
+  const [openModal, setOpenModal] = useState<boolean>(false);
+  const router = useRouter();
+
+  useLayoutEffect(() => {
+    const email = localStorage.getItem('email');
+
+    if (!email) {
+      router.push("/");
+    }
+
+    const fetchUserData = async () => {
+      if (email) {
+        const { data } = await v2Api.get(`/api/v2/users/${email}`);
+        if (data?.data?.user_type !== "admin") {
+          router.push("/");
+        }
+        setLoading(false);
+      }
+    }
+
+    fetchUserData();
+  }, [router]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data } = await axios.get('/api/v1/users');
+      const { data } = await axios.get('/api/v2/users');
       setUsers(data?.data);
     }
 
@@ -47,7 +75,7 @@ export default function TableList(): JSX.Element {
   useEffect(() => {
     const fetchSingleData = async () => {
       if (userEmail) {
-        const { data } = await axios.get(`/api/v1/users/${userEmail}`);
+        const { data } = await v2Api.get(`/api/v2/users/${userEmail}`);
         setSingleUser(data?.data);
       }
     }
@@ -83,9 +111,11 @@ export default function TableList(): JSX.Element {
       fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
     }),
     onSubmit: async (values: any) => {
-      const { data } = await axios.patch(`/api/v1/users/${singleUser?.email}`, values);
+      const { data } = await axios.patch(`/api/v2/users/${singleUser?.email}`, values);
       if (data.success) {
         setOpenSlideOver(false);
+        setNotification({ status: data.success, message: data.message});
+        setOpenModal(true);
         setUpdated(!updated);
       }
     },
@@ -93,20 +123,34 @@ export default function TableList(): JSX.Element {
 
   const deleteUser = async () => {
     setLoading(true);
-    const mappedSelected = selectedUser.filter(x => x.user_type !== "admin").map(user => user.email);
+    const mappedSelected = selectedUser.filter(x => x.user_type !== "admin").map(user => user.user_id);
 
     for (const user of mappedSelected) {
-      await axios.delete(`/api/v1/users/${user}`);
+      await axios.delete(`/api/v2/users/${user}`);
     }
     setUpdated(!updated);
+    setNotification({ status: true, message: "Deleted successfully"});
+    setOpenModal(true);
     setConfirmationDialog(false);
     setSelectedUser([]);
+    setLoading(false);
+  }
+
+  const toggleUser = async (userId: string) => {
+    setLoading(true);
+  
+    const { data } = await v2Api.put(`/api/v2/users/${userId}`);
+
+    setUpdated(!updated);
+    setNotification({ status: data.success, message: data.message});
+    setOpenModal(true);
     setLoading(false);
   }
 
   return (
     <div className="relative py-5 sm:pb-24 sm:pt-10">
       <BackgroundImage className="-bottom-14 -top-36" />
+      {loading && <PageLoader />}
       <Container className="relative">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="sm:px-4 mt-10 sm:flex-auto">
@@ -186,16 +230,24 @@ export default function TableList(): JSX.Element {
                           </td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{user.email}</td>
                           <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 capitalize">{user.user_type}</td>
-                          <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-3">
+                          <td className="whitespace-nowrap py-4 pl-3 pr-2 text-right text-sm font-medium sm:pr-3">
                             <a
                               onClick={() => {
                                 setOpenSlideOver(true);
                                 setUserEmail(user.email)
                               }}
-                              className="text-indigo-600 hover:text-indigo-900 cursor-pointer"
+                              className="bg-[#7c70ee] text-gray-200 py-1 px-2 rounded hover:text-white cursor-pointer"
                             >
                               Edit<span className="sr-only">, {user.full_name}</span>
                             </a>
+                          </td>
+                          <td className="whitespace-nowrap py-4 text-right text-sm font-medium sm:pr-3">
+                            {user.user_type !== "admin" && <a
+                              onClick={() => toggleUser(user.user_id)}
+                              className={`${user?.verification[0]?.status ? "bg-green-500 hover:bg-green-400" : "bg-red-500 hover:bg-red-400"} text-gray-100 hover:text-white rounded py-1 px-2 cursor-pointer`}
+                            >
+                              {`${user?.verification[0]?.status ? "Activate" : "Deactivate"}`}<span className="sr-only">, {user.full_name}</span>
+                            </a>}
                           </td>
                         </tr>
                       ))}
@@ -236,6 +288,12 @@ export default function TableList(): JSX.Element {
         message="Are you sure you want to delete the selected user?"
         buttonAction={deleteUser}
         loading={loading}
+      />
+      <Notification
+        show={openModal}
+        setShow={setOpenModal}
+        status={notification.status}
+        message={notification.message}
       />
     </div>
   )
