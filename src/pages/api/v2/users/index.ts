@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         user_id: userId,
         password: hashedPassword
       };
-      let data = await await prisma.users.create({ data: body });
+      let data: any = await prisma.users.create({ data: body });
 
         if (data?.user_id) {
           const code = generateRandomNumber();
@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               verification_id: uuidv4()
           }});
 
-          await sendEmail("Verification Code", `<p>${code}</p>`, data.email);
+          await sendEmail("Verification Code", `<p>${code}</p>`, data.email as string);
           msg = "Account created successfully";
         } else {
           data = null;
@@ -53,7 +53,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === "GET") {
       try {
-        const users = await prisma.users.findMany();
+        const users = await prisma.users.findMany({
+          include: {
+            verification: true
+          }
+        });
 
         res.status(200).json({ success: true, data: users });
       } catch (error) {
