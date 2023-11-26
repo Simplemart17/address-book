@@ -10,6 +10,7 @@ type NotificationProps ={
   setShow: (value: boolean) => void;
 }
 
+// fix notification path
 export default function Notification({status, message, show, setShow}: NotificationProps) {
   return (
     <>
