@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             message: "Account blocked! Contact the administrator",
           });
         }
-        const check = await bcrypt.compare(password, data.password);
+        const check = await bcrypt.compare(password, data.password as string);
 
         if (!check) {
           res.status(401).json({
@@ -53,8 +53,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return;
         }
       }
-
-      delete data.password;
 
       res.status(200).json({
         success: true,
