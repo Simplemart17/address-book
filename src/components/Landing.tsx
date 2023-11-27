@@ -144,10 +144,13 @@ export function Landing(): JSX.Element {
   const accountVerification = async () => {
     setLoading(true);
     const { data } = await v2Api.post("/api/v2/users/verify", {email: values.email, code: values.code});
+
     if (!data.success) {
       setOpenVerified(false);
       setNotification({status: data.success, message: data.message as string});
       setOpenModal(true);
+
+      return;
     }
     setNotification({status: data.success, message: "Verified successfully! Please login"});
 
