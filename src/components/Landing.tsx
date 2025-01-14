@@ -75,10 +75,15 @@ export function Landing(): JSX.Element {
         }
         return schema.notRequired();
       }),
-      password: Yup.string().matches(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
-        'password must be at least 8 characters, at least one lower case letter, capital letter, number, and special character',
-      ).required('Password cannot be empty'),
+      password: Yup.string().when(([], schema) => {
+        if (!isUser) {
+          return schema.matches(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
+            'password must be at least 8 characters, at least one lower case letter, capital letter, number, and special character',
+          ).required('Password cannot be empty')
+        }
+        return schema.notRequired();
+      }),
       confirmPassword: Yup.string().when(([], schema) => {
         if (!isUser) {
           return schema.test('equal', 'Passwords do not match!', function (v) {
@@ -100,6 +105,7 @@ export function Landing(): JSX.Element {
       try {
         if (userCheck) {
           const { data } = await v2Api.post<ResponseData>("/api/v2/users", values);
+
           if (data.success) {
             setNotification({ status: data.success, message: data.message as string });
             setOpenModal(true);
@@ -126,6 +132,10 @@ export function Landing(): JSX.Element {
               setUserCheck(true);
               setIsUser(false);
               setNotification({ status: data.success, message: data.message });
+              setOpenModal(true);
+            } else if (data.message?.includes("Account found")) {
+              setNotification({ status: true, message: data.message as string });
+              setFoundEmail(true);
               setOpenModal(true);
             } else {
               setNotification({ status: data.success, message: data.message as string });
