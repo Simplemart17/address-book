@@ -171,10 +171,11 @@ export function Landing(): JSX.Element {
           <h1 className="font-display text-4xl font-bold tracking-tighter text-blue-600 sm:text-5xl text-center">
             <span className="sr-only">ContactRef - </span>Manage Your Contacts
           </h1>
+          <p className="text-center font-semibold text-blue-500 mt-2">An application to keep all your contacts in one place</p>
           <div className="w-1/2 mx-auto">
             <div>
               <div className="mt-6 space-y-1 font-display text-xl tracking-tight text-gray-800">
-                <p className="text-center">
+                <p className="text-center text-sm font-semibold">
                   Enter your details to get started
                 </p>
                 {!isUser && <InputField
