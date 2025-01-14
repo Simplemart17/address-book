@@ -14,14 +14,14 @@ import { v2Api } from '@/config/axiosInstance';
 import Notification from './modals/NotificationModal';
 
 interface ResponseData {
-    success: boolean;
-    message?: string;
-    error?: string;
-    email: string;
-    user_type: string;
-    full_name: string;
-    user_id: string;
-    verified: boolean;
+  success: boolean;
+  message?: string;
+  error?: string;
+  email: string;
+  user_type: string;
+  full_name: string;
+  user_id: string;
+  verified: boolean;
 }
 
 export type NotificationProps = {
@@ -34,9 +34,10 @@ export function Landing(): JSX.Element {
   const [isUser, setIsUser] = useState<boolean>(true);
   const [userCheck, setUserCheck] = useState<boolean>(false);
   const [openModal, setOpenModal] = useState<boolean>(false);
-  const [notification, setNotification] = useState<NotificationProps>({status: false, message: ""});
+  const [notification, setNotification] = useState<NotificationProps>({ status: false, message: "" });
   const [openVerified, setOpenVerified] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [foundEmail, setFoundEmail] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -66,8 +67,8 @@ export function Landing(): JSX.Element {
     },
     validationSchema: Yup.object({
       email: Yup.string()
-      .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Enter a valid email address')
-      .required('Email cannot be empty'),
+        .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Enter a valid email address')
+        .required('Email cannot be empty'),
       fullName: Yup.string().when(([], schema) => {
         if (!isUser) {
           return schema.min(3, "Enter a minimum of 3 characters").required("Full name is a required field");
@@ -84,7 +85,7 @@ export function Landing(): JSX.Element {
             const ref = Yup.ref('password');
             return v === this.resolve(ref);
           })
-          .required('This field is required')
+            .required('This field is required')
         }
         return schema.notRequired();
       }),
@@ -100,11 +101,11 @@ export function Landing(): JSX.Element {
         if (userCheck) {
           const { data } = await v2Api.post<ResponseData>("/api/v2/users", values);
           if (data.success) {
-            setNotification({status: data.success, message: data.message as string});
+            setNotification({ status: data.success, message: data.message as string });
             setOpenModal(true);
             setOpenVerified(true);
           } else {
-            setNotification({status: data.success, message: data.message as string});
+            setNotification({ status: data.success, message: data.message as string });
             setOpenModal(true);
           }
         } else {
@@ -124,35 +125,35 @@ export function Landing(): JSX.Element {
             if (data.message?.includes("Account not found")) {
               setUserCheck(true);
               setIsUser(false);
-              setNotification({status: data.success, message: data.message});
+              setNotification({ status: data.success, message: data.message });
               setOpenModal(true);
             } else {
-              setNotification({status: data.success, message: data.message as string});
+              setNotification({ status: data.success, message: data.message as string });
               setOpenModal(true);
             }
           }
         }
       } catch (error) {
-        setNotification({status: false, message: "Something went wrong!"});
+        setNotification({ status: false, message: "Something went wrong!" });
         setOpenModal(true);
       }
     },
 
-    
+
   });
 
   const accountVerification = async () => {
     setLoading(true);
-    const { data } = await v2Api.post("/api/v2/users/verify", {email: values.email, code: values.code});
+    const { data } = await v2Api.post("/api/v2/users/verify", { email: values.email, code: values.code });
 
     if (!data.success) {
       setOpenVerified(false);
-      setNotification({status: data.success, message: data.message as string});
+      setNotification({ status: data.success, message: data.message as string });
       setOpenModal(true);
 
       return;
     }
-    setNotification({status: data.success, message: "Verified successfully! Please login"});
+    setNotification({ status: data.success, message: "Verified successfully! Please login" });
 
     localStorage.setItem("email", values.email);
     router.push("/contact-lists");
@@ -198,7 +199,7 @@ export function Landing(): JSX.Element {
                   onChange={handleChange}
                   label="Email Address*"
                 />
-                <InputField
+                {(foundEmail || !isUser) && <InputField
                   name={"password"}
                   type="password"
                   value={values.password}
@@ -207,7 +208,7 @@ export function Landing(): JSX.Element {
                   errorMessage={errors.password}
                   onChange={handleChange}
                   label="Password*"
-                />
+                />}
                 {!isUser && <InputField
                   name={"confirmPassword"}
                   type="password"
@@ -226,7 +227,7 @@ export function Landing(): JSX.Element {
                   className="ml-1 hover:underline hover:font-semibold text-blue-500"
                   onClick={() => setOpenVerified(!openVerified)}
                 >
-                Click here!
+                  Click here!
                 </Link>
               </div>
               <Button type="submit"
@@ -236,7 +237,7 @@ export function Landing(): JSX.Element {
               </Button>
             </div>
           </div>
-          </div>
+        </div>
       </Container>
       <FormModal
         open={openVerified}
@@ -245,7 +246,7 @@ export function Landing(): JSX.Element {
         primaryBtn={loading ? "Submitting" : "Submit"}
         onClickPrimaryBtn={accountVerification}
         loading={loading}
-        disabled ={!(values.email && values.code)}
+        disabled={!(values.email && values.code)}
       >
         <div className="text-left">
           {/* <p className="mt-5 text-red-600 text-md text-bold animate-bounce text-center">{notification.message}</p> */}
