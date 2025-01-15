@@ -52,8 +52,8 @@ export function ContactImage({imageUrl, index}: ContactImageProps):JSX.Element {
               style={{ clipPath: `url(#${id}-${index % 3})` }}
             >
               <Image
-                className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-110"
-                src={imageUrl}
+                className="absolute inset-0 h-full w-full transition duration-300 group-hover:scale-110"
+                src={imageUrl ?? "https://res.cloudinary.com/dq7p8ff2f/image/upload/v1588010810/user2.png"}
                 alt=""
                 priority
                 unoptimized
