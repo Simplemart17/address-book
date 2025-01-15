@@ -289,6 +289,7 @@ const searchedContacts = useMemo(
         <SelectInput
           name="type"
           error={!!errors.type}
+          value={values.type}
           errorMessage={errors.type as string}
           label="Contact Type*"
           onChange={handleChange}
