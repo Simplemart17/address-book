@@ -40,7 +40,6 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (subject: string, body: any, to: string) => {
   const html = body;
-  console.log(subject, body, to);
   try {
     const msg = {
       from: "simplemart.dev@gmail.com",
