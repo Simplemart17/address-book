@@ -14,7 +14,7 @@ export default function InputField({name, type, error, placeholder, errorMessage
   return (
     <div className="w-full">
       <div className="relative rounded-md shadow-sm mt-4">
-        {props.label && <label>{props.label}</label>}
+        {props.label && <label className="text-sm font-bold">{props.label}</label>}
         <input
           {...props}
           type={type}

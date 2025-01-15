@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import mongoDbConnect from '@/config/mongoDbConnection.config'
 import Contact from '@/models/Contacts';
-import { randomizeImageUrl } from '@/utils';
 
 export default async function handler(
   req: NextApiRequest,
@@ -24,7 +23,7 @@ export default async function handler(
     case 'POST':
       try {
         const contact = await Contact.create({
-          ...req.body, url: randomizeImageUrl()
+          ...req.body
         });
 
         res.status(201).json({ success: true, ...contact._doc });

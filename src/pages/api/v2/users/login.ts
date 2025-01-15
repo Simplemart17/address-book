@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!data) {
         res.status(404).json({
           success: false,
-          message: "Account not found",
+          message: "Account not found, please register",
         });
         return;
       }
@@ -39,6 +39,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             message: "Account blocked! Contact the administrator",
           });
         }
+
+        if (!password.length) {
+          res.status(200).json({
+            message: "Account found, enter your password",
+          });
+          return;
+        }
+        
         const check = await bcrypt.compare(password, data.password as string);
 
         if (!check) {
