@@ -36,6 +36,7 @@ export function Landing(): JSX.Element {
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [notification, setNotification] = useState<NotificationProps>({ status: false, message: "" });
   const [openVerified, setOpenVerified] = useState<boolean>(false);
+  const [openResendVerification, setOpenResendVerification] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [foundEmail, setFoundEmail] = useState<boolean>(false);
   const router = useRouter();
@@ -173,6 +174,25 @@ export function Landing(): JSX.Element {
     resetForm();
   }
 
+  const resendVerificationCode = async () => {
+    setLoading(true);
+    const { data } = await v2Api.post("/api/v2/users/resend", { email: values.email });
+
+    if (!data.success) {
+      setNotification({ status: data.success, message: data.message as string });
+      setOpenModal(true);
+
+      return;
+    }
+    setOpenResendVerification(false);
+    setNotification({ status: data.success, message: "Verified code sent successfully!" });
+    setOpenModal(true);
+
+    setOpenVerified(true);
+    setLoading(false);
+    resetForm();
+  }
+
   return (
     <div className="relative py-20 sm:pb-24 sm:pt-36">
       <BackgroundImage className="-bottom-14 -top-36" />
@@ -231,17 +251,25 @@ export function Landing(): JSX.Element {
                 />}
               </div>
               <div className="mt-1 text-sm">
-                <span>If you have a verification code?</span>
-                <Link
-                  href="#"
-                  className="ml-1 hover:underline hover:font-semibold text-blue-500"
-                  onClick={() => setOpenVerified(!openVerified)}
-                >
-                  Click here!
-                </Link>
+                <p>If you have a verification code?
+                  <span><Link
+                    href="#"
+                    className="ml-1 hover:underline hover:font-semibold text-blue-500"
+                    onClick={() => setOpenVerified(!openVerified)}
+                  >
+                    Click here!
+                  </Link></span></p>
+                <p>To resend the verification code?
+                  <span><Link
+                    href="#"
+                    className="ml-1 hover:underline hover:font-semibold text-blue-500"
+                    onClick={() => setOpenResendVerification(!openResendVerification)}
+                  >
+                    Click here!
+                  </Link></span></p>
               </div>
               <Button type="submit"
-                className={`mt-10 w-full ${isSubmitting || !(isValid && dirty) || (!isUser && !values.fullName) ? 'cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                className={`mt-5 w-full ${isSubmitting || !(isValid && dirty) || (!isUser && !values.fullName) ? 'cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
                 onClick={() => handleSubmit()} disabled={isSubmitting || !(isValid && dirty)}>
                 {isSubmitting ? "Loading..." : userCheck ? "Continue" : "Submit"}
               </Button>
@@ -279,6 +307,29 @@ export function Landing(): JSX.Element {
             errorMessage={errors.code}
             onChange={handleChange}
             label="Account verification code"
+          />
+        </div>
+      </FormModal>
+      <FormModal
+        open={openResendVerification}
+        setOpen={() => setOpenResendVerification(!openResendVerification)}
+        title="Resend Verification Code"
+        primaryBtn={loading ? "Submitting" : "Submit"}
+        onClickPrimaryBtn={resendVerificationCode}
+        loading={loading}
+        disabled={!(values.email)}
+      >
+        <div className="text-left">
+          {/* <p className="mt-5 text-red-600 text-md text-bold animate-bounce text-center">{notification.message}</p> */}
+          <InputField
+            name={"email"}
+            type="email"
+            value={values.email}
+            placeholder="Enter your email address"
+            error={!!errors.email}
+            errorMessage={errors.email}
+            onChange={handleChange}
+            label="Email Address*"
           />
         </div>
       </FormModal>
