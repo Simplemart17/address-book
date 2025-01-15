@@ -110,7 +110,7 @@ export default function ContactList(): JSX.Element {
     },
     validationSchema: Yup.object({
       fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
-      address: Yup.string().min(10, "The address is too short!").required('This field is required'),
+      address: Yup.string().min(5, "The address is too short!").required('This field is required'),
       phone: Yup.string().matches(/^[0-9]{10,11}$/, "Enter only numbers, maximum of eleven digits").required('This field is required'),
       type: Yup.string().required('This field is required'),
     }),
