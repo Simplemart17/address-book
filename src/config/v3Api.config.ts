@@ -119,7 +119,11 @@ export const usersApi = {
     return response.data
   },
 
-  // TODO: Delete user from supabase auth as well
+  create: async (userData: { email: string; fullName: string; password: string }) => {
+    const response = await v3Api.post('/api/v3/users', userData)
+    return response.data
+  },
+
   delete: async (userId: string) => {
     const response = await v3Api.delete(`/api/v3/users/${userId}`)
     return response.data
