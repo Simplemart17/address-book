@@ -97,6 +97,35 @@ export const contactsApi = {
   }
 }
 
+// Users API methods
+export const usersApi = {
+  getAll: async () => {
+    const response = await v3Api.get('/api/v3/users')
+    return response.data
+  },
+
+  getById: async (userId: string) => {
+    const response = await v3Api.get(`/api/v3/users/${userId}`)
+    return response.data
+  },
+
+  updateStatus: async (userId: string) => {
+    const response = await v3Api.patch(`/api/v3/users/${userId}`)
+    return response.data
+  },
+
+  updateUser: async (userId: string, fullName: string) => {
+    const response = await v3Api.put(`/api/v3/users/${userId}`, { full_name: fullName })
+    return response.data
+  },
+
+  // TODO: Delete user from supabase auth as well
+  delete: async (userId: string) => {
+    const response = await v3Api.delete(`/api/v3/users/${userId}`)
+    return response.data
+  }
+}
+
 // Upload API methods
 export const uploadApi = {
   uploadImage: async (file: File) => {
