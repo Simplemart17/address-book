@@ -57,9 +57,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PUT') {
       try {
         const { userId } = req.query;
-        const { full_name } = req.body;
-  
-        const { data: user, error } = await supabase.from('users').update({ full_name }).eq('user_id', userId).select().single();
+        const { full_name, verified } = req.body;
+
+        // Build update object with provided fields
+        const updateData: { full_name?: string; verified?: boolean } = {};
+        if (verified !== undefined) updateData.verified = verified;
+        if (full_name) updateData.full_name = full_name;
+
+        // If no valid fields to update, return error
+        if (Object.keys(updateData).length === 0) {
+          return res.status(400).json({ success: false, message: 'No valid fields to update' });
+        }
+
+        const { data: user, error } = await supabase
+          .from('users')
+          .update(updateData)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error) {
+          return res.status(400).json({ success: false, message: error.message });
+        }
+        
         res.status(200).json({ success: true, data: user });
       } catch (error) {
         res.status(500).json({ success: false, message: "Something went wrong"});
