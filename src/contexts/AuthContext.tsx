@@ -95,6 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password
     })
 
+    if (error) throw error;
+
     // check the admin_users table if the data.user_id matches
     const admin = await supabase.from("admin_users").select('*').eq('id', data.user?.id).single();
     if (admin.data) {
