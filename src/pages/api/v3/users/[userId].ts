@@ -70,6 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         const { userId } = req.query;
   
+        await supabase.auth.admin.deleteUser(userId as string);
         await supabase.from('users').delete().eq('user_id', userId);
         res.status(200).json({ success: true, message: "Deleted successfully" });
       } catch (error) {
