@@ -10,6 +10,7 @@ import * as Yup from 'yup';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Notification from './modals/NotificationModal';
+import { usersApi } from '@/config/v3Api.config';
 
 export interface NotificationProps {
   status: boolean;
@@ -22,7 +23,7 @@ export default function LandingV3(): JSX.Element {
   const [notification, setNotification] = useState<NotificationProps>({ status: false, message: "" });
   const [isLogin, setIsLogin] = useState<boolean>(true);
 
-  const { signUp, signIn } = useAuth();
+  const { signIn } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -84,9 +85,8 @@ export default function LandingV3(): JSX.Element {
           }
         } else {
           // Registration flow
-          const result = await signUp(values.email, values.password, values.fullName);
-          
-          if (result.user) {
+          const result = await usersApi.create({ email: values.email, password: values.password, fullName: values.fullName });
+          if (result.success) {
             setNotification({ 
               status: true, 
               message: "Account created successfully! Please check your email for verification." 
@@ -97,14 +97,15 @@ export default function LandingV3(): JSX.Element {
           }
         }
       } catch (error: any) {
+        console.log(error, "what is the frontend error here")
         let errorMessage = "Something went wrong!";
         
-        if (error.message) {
-          if (error.message.includes('Invalid login credentials')) {
+        if (error?.response?.data?.message) {
+          if (error?.response?.data?.message.includes('Invalid login credentials')) {
             errorMessage = "Email/password not correct";
-          } else if (error.message.includes('Email not confirmed')) {
+          } else if (error?.response?.data?.message.includes('Email not confirmed')) {
             errorMessage = "Account not verified!";
-          } else if (error.message.includes('User already registered')) {
+          } else if (error?.response?.data?.message.includes('User already registered')) {
             errorMessage = "Email already exists";
           } else {
             errorMessage = error.message;
