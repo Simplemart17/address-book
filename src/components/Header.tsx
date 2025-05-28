@@ -21,7 +21,7 @@ export function Header():JSX.Element {
 
   return (
     <>
-      <header className="relative z-10 flex  items-center justify-between lg:pt-11 px-32">
+      <header className="relative z-10 flex  items-center justify-between lg:pt-11">
         <Link href="/">
           <Container className="flex flex-wrap w-56 items-center justify-evenly sm:justify-between lg:flex-nowrap cursor-pointer">
             <div className="flex items-center mt-10 lg:mt-0 lg:grow lg:basis-0">
@@ -30,13 +30,14 @@ export function Header():JSX.Element {
             </div>
           </Container>
         </Link>
-        {email && <div className="h-14 flex items-center">
+        {email && <div className="h-14 flex items-center pr-10">
           <p className="mr-6 text-base underline font-bold">{email}</p>
           <button
             type="button"
             className="p-3 inline-flex rounded-md bg-[#1277e9] text-gray-100 font-bold hover:text-[#94c3fa] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             onClick={() => {
               localStorage.removeItem("email");
+              localStorage.removeItem("userType");
               router.push("/");
             }}
           >
