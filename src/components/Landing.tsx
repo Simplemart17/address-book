@@ -1,338 +1,220 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'
-import { BackgroundImage } from '@/components/BackgroundImage'
-import { Button } from '@/components/Button'
-import { Container } from '@/components/Container'
+import React, { useState , useEffect, use } from 'react';
+import { BackgroundImage } from './BackgroundImage'
+import { Button } from './Button'
+import { Container } from './Container'
 import InputField from './InputField'
-import * as Yup from 'yup'
-import { useFormik } from 'formik'
-import Link from 'next/link';
-import FormModal from './modals/FormModal';
-import { v2Api } from '@/config/axiosInstance';
+import { useFormik } from 'formik';
+import * as Yup from 'yup';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import Notification from './modals/NotificationModal';
 
-interface ResponseData {
-  success: boolean;
-  message?: string;
-  error?: string;
-  email: string;
-  user_type: string;
-  full_name: string;
-  user_id: string;
-  verified: boolean;
-}
-
-export type NotificationProps = {
+export interface NotificationProps {
   status: boolean;
   message: string;
 }
 
-export function Landing(): JSX.Element {
-  const [serverError, setServerError] = useState<string>("");
-  const [isUser, setIsUser] = useState<boolean>(true);
-  const [userCheck, setUserCheck] = useState<boolean>(false);
+export default function LandingV3(): JSX.Element {
   const [openModal, setOpenModal] = useState<boolean>(false);
-  const [notification, setNotification] = useState<NotificationProps>({ status: false, message: "" });
-  const [openVerified, setOpenVerified] = useState<boolean>(false);
-  const [openResendVerification, setOpenResendVerification] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [foundEmail, setFoundEmail] = useState<boolean>(false);
+  const [notification, setNotification] = useState<NotificationProps>({ status: false, message: "" });
+  const [isLogin, setIsLogin] = useState<boolean>(true);
+
+  const { signUp, signIn, verifyOtp } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     const email = localStorage.getItem('email');
+    const userTpe = localStorage.getItem('userType');
 
-    if (email) {
+    if (email && userTpe === "admin") {
+      router.push("/admin");
+    } else if (email) {
       router.push("/contact-lists");
     }
   }, [router]);
 
   const {
+    values,
     handleChange,
     handleSubmit,
-    values,
-    errors,
-    isValid,
     isSubmitting,
-    dirty,
+    errors,
     resetForm
   } = useFormik({
     initialValues: {
-      email: '',
-      fullName: '',
-      password: '',
-      confirmPassword: '',
-      code: ''
+      email: "",
+      password: "",
+      fullName: "",
+      code: ""
     },
     validationSchema: Yup.object({
-      email: Yup.string()
-        .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Enter a valid email address')
-        .required('Email cannot be empty'),
-      fullName: Yup.string().when(([], schema) => {
-        if (!isUser) {
-          return schema.min(3, "Enter a minimum of 3 characters").required("Full name is a required field");
-        }
-        return schema.notRequired();
-      }),
-      password: Yup.string().when(([], schema) => {
-        if (!isUser) {
-          return schema.matches(
-            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/,
-            'password must be at least 8 characters, at least one lower case letter, capital letter, number, and special character',
-          ).required('Password cannot be empty')
-        }
-        return schema.notRequired();
-      }),
-      confirmPassword: Yup.string().when(([], schema) => {
-        if (!isUser) {
-          return schema.test('equal', 'Passwords do not match!', function (v) {
-            const ref = Yup.ref('password');
-            return v === this.resolve(ref);
-          })
-            .required('This field is required')
-        }
-        return schema.notRequired();
-      }),
-      code: Yup.string().when(([], schema) => {
-        if (openVerified) {
-          return schema.matches(/^[0-9]{6}$/, "Enter only 6 digits number").required("This is a required field");
-        }
-        return schema.notRequired();
-      }),
+      email: Yup.string().email('Invalid email address').required('Email is required'),
+      password: isLogin ? Yup.string() : Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+      fullName: isLogin ? Yup.string() : Yup.string().min(2, 'Full name must be at least 2 characters').required('Full name is required'),
+      code: Yup.string()
     }),
-    onSubmit: async values => {
+    onSubmit: async (values) => {
       try {
-        if (userCheck) {
-          const { data } = await v2Api.post<ResponseData>("/api/v2/users", values);
+        setLoading(true);
 
-          if (data.success) {
-            setNotification({ status: data.success, message: data.message as string });
+        if (isLogin) {
+          // Login flow
+          if (!values.password) {
+            // Just check if user exists
+            setNotification({ status: true, message: "Account found, enter your password" });
             setOpenModal(true);
-            setOpenVerified(true);
-          } else {
-            setNotification({ status: data.success, message: data.message as string });
+            return;
+          }
+
+          const result = await signIn(values.email, values.password);
+          
+          if (result.user) {
+            setNotification({ status: true, message: "Login successful!" });
             setOpenModal(true);
+            localStorage.setItem("email", values.email);
+            if (result.user_type === 'admin') {
+              router.push("/admin");
+            } else {
+              router.push("/contact-lists");
+            }
+            resetForm();
           }
         } else {
-          const { data } = await v2Api.post<ResponseData>("/api/v2/users/login", values);
+          // Registration flow
+          const result = await signUp(values.email, values.password, values.fullName);
+          
+          if (result.user) {
+            setNotification({ 
+              status: true, 
+              message: "Account created successfully! Please check your email for verification." 
+            });
 
-          if (data?.success) {
-            if (data?.user_type === "admin") {
-              localStorage.setItem("email", values.email);
-              router.push("/admin");
-            } else if (data?.user_type === "user" && data?.verified) {
-              localStorage.setItem("email", values.email);
-              router.push("/contact-lists");
-            } else {
-              setOpenVerified(true);
-            }
-          } else {
-            if (data.message?.includes("Account not found")) {
-              setUserCheck(true);
-              setIsUser(false);
-              setNotification({ status: data.success, message: data.message });
-              setOpenModal(true);
-            } else if (data.message?.includes("Account found")) {
-              setNotification({ status: true, message: data.message as string });
-              setFoundEmail(true);
-              setOpenModal(true);
-            } else {
-              setNotification({ status: data.success, message: data.message as string });
-              setOpenModal(true);
-            }
+            setOpenModal(true);
+            resetForm();
           }
         }
-      } catch (error) {
-        setNotification({ status: false, message: "Something went wrong!" });
+      } catch (error: any) {
+        let errorMessage = "Something went wrong!";
+        
+        if (error.message) {
+          if (error.message.includes('Invalid login credentials')) {
+            errorMessage = "Email/password not correct";
+          } else if (error.message.includes('Email not confirmed')) {
+            errorMessage = "Account not verified!";
+          } else if (error.message.includes('User already registered')) {
+            errorMessage = "Email already exists";
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        setNotification({ status: false, message: errorMessage });
         setOpenModal(true);
+      } finally {
+        setLoading(false);
       }
     },
-
-
   });
 
-  const accountVerification = async () => {
-    setLoading(true);
-    const { data } = await v2Api.post("/api/v2/users/verify", { email: values.email, code: values.code });
-
-    if (!data.success) {
-      setOpenVerified(false);
-      setNotification({ status: data.success, message: data.message as string });
-      setOpenModal(true);
-
-      return;
-    }
-    setNotification({ status: data.success, message: "Verified successfully! Please login" });
-
-    localStorage.setItem("email", values.email);
-    router.push("/contact-lists");
-    setOpenModal(true);
-    setOpenVerified(false);
-    setLoading(false);
-    resetForm();
-  }
-
-  const resendVerificationCode = async () => {
-    setLoading(true);
-    const { data } = await v2Api.post("/api/v2/users/resend", { email: values.email });
-
-    if (!data.success) {
-      setNotification({ status: data.success, message: data.message as string });
-      setOpenModal(true);
-
-      return;
-    }
-    setOpenResendVerification(false);
-    setNotification({ status: data.success, message: "Verified code sent successfully!" });
-    setOpenModal(true);
-
-    setOpenVerified(true);
-    setLoading(false);
-    resetForm();
-  }
-
   return (
-    <div className="relative py-20 sm:pb-24 sm:pt-36">
+    <div className="relative py-10">
       <BackgroundImage className="-bottom-14 -top-36" />
       <Container className="relative">
-        <p className="text-center text-red-700 font-semibold animate-bounce">{serverError}</p>
         <div className="mx-auto max-w-2xl lg:max-w-4xl lg:px-12">
-          <h1 className="font-display text-4xl font-bold tracking-tighter text-blue-600 sm:text-5xl text-center">
-            <span className="sr-only">ContactRef - </span>Manage Your Contacts
+          <h1 className="font-display text-center text-4xl font-bold tracking-tighter text-blue-600 sm:text-5xl">
+            <span className="sr-only">Address Book - </span>
+            Your Personal Contact Manager
           </h1>
-          <p className="text-center font-semibold text-blue-500 mt-2">An application to keep all your contacts in one place</p>
-          <div className="w-1/2 mx-auto">
-            <div>
-              <div className="mt-6 space-y-1 font-display text-xl tracking-tight text-gray-800">
-                <p className="text-center text-sm font-semibold">
-                  Enter your details to get started
-                </p>
-                {!isUser && <InputField
-                  name={"fullName"}
-                  type="text"
-                  value={values.fullName}
-                  placeholder="Enter your full name"
-                  error={!!errors.fullName}
-                  errorMessage={errors.fullName}
-                  onChange={handleChange}
-                  label="Full Name*"
-                />}
-                <InputField
-                  name={"email"}
-                  type="email"
-                  value={values.email}
-                  placeholder="Enter a valid email address"
-                  error={!!errors.email}
-                  errorMessage={errors.email}
-                  onChange={handleChange}
-                  label="Email Address*"
-                />
-                {(foundEmail || !isUser) && <InputField
-                  name={"password"}
-                  type="password"
-                  value={values.password}
-                  placeholder="Enter your password"
-                  error={!!errors.password}
-                  errorMessage={errors.password}
-                  onChange={handleChange}
-                  label="Password*"
-                />}
-                {!isUser && <InputField
-                  name={"confirmPassword"}
-                  type="password"
-                  value={values.confirmPassword}
-                  placeholder="Re-enter your password"
-                  error={!!errors.confirmPassword}
-                  errorMessage={errors.confirmPassword}
-                  onChange={handleChange}
-                  label="Confirm Password*"
-                />}
-              </div>
-              <div className="mt-1 text-sm">
-                <p>If you have a verification code?
-                  <span><Link
-                    href="#"
-                    className="ml-1 hover:underline hover:font-semibold text-blue-500"
-                    onClick={() => setOpenVerified(!openVerified)}
+            <p className="mt-2 text-center space-y-6 font-display text-xl tracking-tight text-blue-900">
+              Keep all your important contacts organized and easily accessible.
+            </p>
+          
+          <div className="mt-10 flex flex-col items-center gap-y-6">
+            <div className="w-full max-w-md">
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <div className="flex justify-center mb-6">
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsLogin(true)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isLogin 
+                          ? 'bg-blue-600 text-white shadow-sm' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Login
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsLogin(false)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        !isLogin 
+                          ? 'bg-blue-600 text-white shadow-sm' 
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      Register
+                    </button>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {!isLogin && (
+                    <InputField
+                      name="fullName"
+                      type="text"
+                      value={values.fullName}
+                      error={!!errors.fullName}
+                      errorMessage={errors.fullName as string}
+                      label="Full Name*"
+                      placeholder="Enter your full name"
+                      onChange={handleChange}
+                    />
+                  )}
+                  
+                  <InputField
+                    name="email"
+                    type="email"
+                    value={values.email}
+                    error={!!errors.email}
+                    errorMessage={errors.email as string}
+                    label="Email Address*"
+                    placeholder="Enter your email"
+                    onChange={handleChange}
+                  />
+                  
+                  <InputField
+                    name="password"
+                    type="password"
+                    value={values.password}
+                    error={!!errors.password}
+                    errorMessage={errors.password as string}
+                    label={isLogin ? "Password" : "Password*"}
+                    placeholder={isLogin ? "Enter password (optional for account check)" : "Enter your password"}
+                    onChange={handleChange}
+                  />
+                  
+                  <Button
+                    type="submit"
+                    className={`w-full ${loading || isSubmitting ? 'cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
+                    disabled={loading || isSubmitting}
                   >
-                    Click here!
-                  </Link></span></p>
-                <p>To resend the verification code?
-                  <span><Link
-                    href="#"
-                    className="ml-1 hover:underline hover:font-semibold text-blue-500"
-                    onClick={() => setOpenResendVerification(!openResendVerification)}
-                  >
-                    Click here!
-                  </Link></span></p>
+                    {loading || isSubmitting 
+                      ? (isLogin ? "Signing in..." : "Creating account...") 
+                      : (isLogin ? "Sign In" : "Create Account")
+                    }
+                  </Button>
+                </form>
               </div>
-              <Button type="submit"
-                className={`mt-5 w-full ${isSubmitting || !(isValid && dirty) || (!isUser && !values.fullName) ? 'cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
-                onClick={() => handleSubmit()} disabled={isSubmitting || !(isValid && dirty)}>
-                {isSubmitting ? "Loading..." : userCheck ? "Continue" : "Submit"}
-              </Button>
             </div>
           </div>
         </div>
       </Container>
-      <FormModal
-        open={openVerified}
-        setOpen={() => setOpenVerified(!openVerified)}
-        title="Account Verification"
-        primaryBtn={loading ? "Submitting" : "Submit"}
-        onClickPrimaryBtn={accountVerification}
-        loading={loading}
-        disabled={!(values.email && values.code)}
-      >
-        <div className="text-left">
-          {/* <p className="mt-5 text-red-600 text-md text-bold animate-bounce text-center">{notification.message}</p> */}
-          <InputField
-            name={"email"}
-            type="email"
-            value={values.email}
-            placeholder="Enter your email address"
-            error={!!errors.email}
-            errorMessage={errors.email}
-            onChange={handleChange}
-            label="Email Address*"
-          />
-          <InputField
-            name={"code"}
-            type="text"
-            value={values.code}
-            placeholder="Enter verification code"
-            error={!!errors.code}
-            errorMessage={errors.code}
-            onChange={handleChange}
-            label="Account verification code"
-          />
-        </div>
-      </FormModal>
-      <FormModal
-        open={openResendVerification}
-        setOpen={() => setOpenResendVerification(!openResendVerification)}
-        title="Resend Verification Code"
-        primaryBtn={loading ? "Submitting" : "Submit"}
-        onClickPrimaryBtn={resendVerificationCode}
-        loading={loading}
-        disabled={!(values.email)}
-      >
-        <div className="text-left">
-          {/* <p className="mt-5 text-red-600 text-md text-bold animate-bounce text-center">{notification.message}</p> */}
-          <InputField
-            name={"email"}
-            type="email"
-            value={values.email}
-            placeholder="Enter your email address"
-            error={!!errors.email}
-            errorMessage={errors.email}
-            onChange={handleChange}
-            label="Email Address*"
-          />
-        </div>
-      </FormModal>
+
       <Notification
         show={openModal}
         setShow={setOpenModal}
