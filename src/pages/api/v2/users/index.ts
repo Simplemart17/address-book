@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/prisma';
 
 import { generateRandomNumber, hashPassword } from '@/utils';
-import sendEmail from '@/lib/mailer';
+import { sendVerificationEmail } from '@/lib/mailer';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const userType = "user";
       const userId = uuidv4();
       const hashedPassword = await hashPassword(password);
-      
+
       let msg: any;
 
       const body: any = {
@@ -33,8 +33,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               verification_id: uuidv4()
           }});
 
-          await sendEmail("Verification Code", `<p>${code}</p>`, data.email as string);
-          msg = "Account created successfully";
+          // Send verification email with link instead of code
+          try {
+            const emailResult = await sendVerificationEmail(data.email as string, data.user_id, data.full_name);
+            if (emailResult.success) {
+              msg = "Account created successfully. Please check your email to verify your account.";
+            } else {
+              console.error('Failed to send verification email:', emailResult.error);
+              msg = "Account created successfully, but failed to send verification email. Please contact support.";
+            }
+          } catch (emailError) {
+            console.error('Error sending verification email:', emailError);
+            msg = "Account created successfully, but failed to send verification email. Please contact support.";
+          }
         } else {
           data = null;
         }
