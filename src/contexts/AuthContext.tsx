@@ -79,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         full_name: supabaseUser?.user_metadata.full_name,
         password: "managed-by-supabase",
         verified: false,
+        status: true,
         user_type: 'user'
       })
 
