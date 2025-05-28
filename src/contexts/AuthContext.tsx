@@ -8,7 +8,6 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
-  signUp: (email: string, password: string, fullName: string) => Promise<any>
   signIn: (email: string, password: string) => Promise<any>
   signOut: () => Promise<void>
 }
@@ -54,40 +53,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          user_type: 'user'
-        }
-      }
-    })
-
-    if (error) throw error;
-
-    const supabaseUser = data.user;
-
-    // save data into users table
-    const { error: insertError } = await supabase
-      .from('users')
-      .insert({
-        user_id: supabaseUser?.id,
-        email: supabaseUser?.email,
-        full_name: supabaseUser?.user_metadata.full_name,
-        password: "managed-by-supabase",
-        verified: false,
-        status: true,
-        user_type: 'user'
-      })
-
-    if (insertError) throw insertError;
-
-    return data;
-  }
-
   const signIn = async (email: string, password: string) => {
     let user_type = 'user';
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -120,7 +85,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
-    signUp,
     signIn,
     signOut
   }
