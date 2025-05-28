@@ -22,7 +22,7 @@ export default function LandingV3(): JSX.Element {
   const [notification, setNotification] = useState<NotificationProps>({ status: false, message: "" });
   const [isLogin, setIsLogin] = useState<boolean>(true);
 
-  const { signUp, signIn, verifyOtp } = useAuth();
+  const { signUp, signIn } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
