@@ -4,11 +4,25 @@ import prisma from '@/lib/prisma';
 
 import { generateRandomNumber, hashPassword } from '@/utils';
 import { sendVerificationEmail } from '@/lib/mailer';
+import { normalizeEmail, validateEmail } from '@/utils/email';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     try {
       const { email, fullName, password } = req.body;
+
+      // Validate email format and check for + aliases in production
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: emailValidation.message
+        });
+      }
+
+      // Normalize email (remove + aliases in production)
+      const normalizedEmail = normalizeEmail(email);
+
       const userType = "user";
       const userId = uuidv4();
       const hashedPassword = await hashPassword(password);
@@ -16,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       let msg: any;
 
       const body: any = {
-        email,
+        email: normalizedEmail,
         full_name: fullName,
         user_type: userType,
         user_id: userId,
@@ -35,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           // Send verification email with link instead of code
           try {
-            const emailResult = await sendVerificationEmail(data.email as string, data.user_id, data.full_name);
+            const emailResult = await sendVerificationEmail(normalizedEmail, data.user_id, data.full_name);
             if (emailResult.success) {
               msg = "Account created successfully. Please check your email to verify your account.";
             } else {
