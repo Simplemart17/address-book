@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { supabase } from '@/config/supabase.config'
 import { sendVerificationEmail } from '@/lib/mailer'
+import { normalizeEmail, validateEmail } from '@/utils/email'
 
 // Helper function to get user from authorization header
 async function getUserFromAuth(req: NextApiRequest) {
@@ -50,8 +51,21 @@ export default async function handler(
     if (req.method === 'POST') {
       try {
         const { email, fullName, password } = req.body
+
+        // Validate email format and check for + aliases in production
+        const emailValidation = validateEmail(email);
+        if (!emailValidation.isValid) {
+          return res.status(400).json({
+            success: false,
+            message: emailValidation.message
+          });
+        }
+
+        // Normalize email (remove + aliases in production)
+        const normalizedEmail = normalizeEmail(email);
+
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: normalizedEmail,
           password,
           options: {
             data: {
@@ -70,7 +84,7 @@ export default async function handler(
         // save data into users table
         const { error: insertError } = await supabase.from('users').insert({
           user_id: supabaseUser?.id,
-          email: supabaseUser?.email,
+          email: normalizedEmail, // Use normalized email
           full_name: supabaseUser?.user_metadata.full_name,
           password: 'managed-by-supabase',
           verified: false,
@@ -83,7 +97,7 @@ export default async function handler(
         }
 
         const result = await sendVerificationEmail(
-          email,
+          normalizedEmail, // Send verification to normalized email
           supabaseUser?.id as string,
           fullName,
         )
