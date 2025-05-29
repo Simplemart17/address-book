@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Notification from './modals/NotificationModal';
 import { usersApi } from '@/config/v3Api.config';
+import { normalizeEmail, validateEmail } from '@/utils/email';
 
 export interface NotificationProps {
   status: boolean;
@@ -61,6 +62,17 @@ export default function LandingV3(): JSX.Element {
       try {
         setLoading(true);
 
+        // Validate email before processing
+        const emailValidation = validateEmail(values.email);
+        if (!emailValidation.isValid) {
+          setNotification({ status: false, message: emailValidation.message || "Invalid email" });
+          setOpenModal(true);
+          return;
+        }
+
+        // Normalize email for consistent processing
+        const normalizedEmail = normalizeEmail(values.email);
+
         if (isLogin) {
           // Login flow
           if (!values.password) {
@@ -70,12 +82,12 @@ export default function LandingV3(): JSX.Element {
             return;
           }
 
-          const result = await signIn(values.email, values.password);
-          
-          if (result.user) {
+          const result = await signIn(normalizedEmail, values.password);
+
+          if (result.userId) {
             setNotification({ status: true, message: "Login successful!" });
             setOpenModal(true);
-            localStorage.setItem("email", values.email);
+            localStorage.setItem("email", normalizedEmail);
             if (result.user_type === 'admin') {
               router.push("/admin");
             } else {
@@ -85,11 +97,15 @@ export default function LandingV3(): JSX.Element {
           }
         } else {
           // Registration flow
-          const result = await usersApi.create({ email: values.email, password: values.password, fullName: values.fullName });
+          const result = await usersApi.create({
+            email: normalizedEmail,
+            password: values.password,
+            fullName: values.fullName
+          });
           if (result.success) {
-            setNotification({ 
-              status: true, 
-              message: "Account created successfully! Please check your email for verification." 
+            setNotification({
+              status: true,
+              message: "Account created successfully! Please check your email for verification."
             });
 
             setOpenModal(true);
@@ -97,21 +113,27 @@ export default function LandingV3(): JSX.Element {
           }
         }
       } catch (error: any) {
-        console.log(error, "what is the frontend error here")
         let errorMessage = "Something went wrong!";
-        
-        if (error?.response?.data?.message) {
-          if (error?.response?.data?.message.includes('Invalid login credentials')) {
+
+        // Handle different types of errors
+        if (error?.message) {
+          if (error.message.includes('Account not verified')) {
+            errorMessage = "Account not verified! Please check your email and verify your account before logging in.";
+          } else if (error.message.includes('Invalid login credentials')) {
             errorMessage = "Email/password not correct";
-          } else if (error?.response?.data?.message.includes('Email not confirmed')) {
-            errorMessage = "Account not verified!";
-          } else if (error?.response?.data?.message.includes('User already registered')) {
+          } else if (error.message.includes('Email not confirmed')) {
+            errorMessage = "Account not verified! Please check your email and verify your account.";
+          } else if (error.message.includes('User already registered')) {
             errorMessage = "Email already exists";
+          } else if (error.message.includes('Email aliases with +')) {
+            errorMessage = "Email aliases with + are not allowed. Please use your main email address.";
           } else {
             errorMessage = error.message;
           }
+        } else if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
         }
-        
+
         setNotification({ status: false, message: errorMessage });
         setOpenModal(true);
       } finally {
@@ -132,7 +154,7 @@ export default function LandingV3(): JSX.Element {
             <p className="mt-2 text-center space-y-6 font-display text-xl tracking-tight text-blue-900">
               Keep all your important contacts organized and easily accessible.
             </p>
-          
+
           <div className="mt-10 flex flex-col items-center gap-y-6">
             <div className="w-full max-w-md">
               <div className="bg-white rounded-lg shadow-lg p-6">
@@ -142,8 +164,8 @@ export default function LandingV3(): JSX.Element {
                       type="button"
                       onClick={() => setIsLogin(true)}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        isLogin 
-                          ? 'bg-blue-600 text-white shadow-sm' 
+                        isLogin
+                          ? 'bg-blue-600 text-white shadow-sm'
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
@@ -153,8 +175,8 @@ export default function LandingV3(): JSX.Element {
                       type="button"
                       onClick={() => setIsLogin(false)}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        !isLogin 
-                          ? 'bg-blue-600 text-white shadow-sm' 
+                        !isLogin
+                          ? 'bg-blue-600 text-white shadow-sm'
                           : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
@@ -176,7 +198,7 @@ export default function LandingV3(): JSX.Element {
                       onChange={handleChange}
                     />
                   )}
-                  
+
                   <InputField
                     name="email"
                     type="email"
@@ -187,7 +209,7 @@ export default function LandingV3(): JSX.Element {
                     placeholder="Enter your email"
                     onChange={handleChange}
                   />
-                  
+
                   <InputField
                     name="password"
                     type="password"
@@ -198,14 +220,14 @@ export default function LandingV3(): JSX.Element {
                     placeholder={isLogin ? "Enter password (optional for account check)" : "Enter your password"}
                     onChange={handleChange}
                   />
-                  
+
                   <Button
                     type="submit"
                     className={`w-full ${loading || isSubmitting ? 'cursor-not-allowed bg-gray-400 hover:bg-gray-400' : ''}`}
                     disabled={loading || isSubmitting}
                   >
-                    {loading || isSubmitting 
-                      ? (isLogin ? "Signing in..." : "Creating account...") 
+                    {loading || isSubmitting
+                      ? (isLogin ? "Signing in..." : "Creating account...")
                       : (isLogin ? "Sign In" : "Create Account")
                     }
                   </Button>
