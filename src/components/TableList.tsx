@@ -14,7 +14,8 @@ import { useRouter } from 'next/navigation';
 import { v2Api } from '@/config/axiosInstance';
 import { PageLoader } from './PageLoader';
 import Notification from './modals/NotificationModal';
-import { NotificationProps } from './Landing';
+import { NotificationProps } from './Landing.deprecated';
+import { usersApi } from '@/config/v3Api.config';
 
 type userProps = {
   email: string;
@@ -45,28 +46,25 @@ export default function TableList(): JSX.Element {
 
   useLayoutEffect(() => {
     const email = localStorage.getItem('email');
+    const userType = localStorage.getItem('userType');
 
-    if (!email) {
+    // Redirect if not authenticated
+    if (!email && !userType) {
       router.push("/");
     }
 
-    const fetchUserData = async () => {
-      if (email) {
-        const { data } = await v2Api.get(`/api/v2/users/${email}`);
-        if (data?.data?.user_type !== "admin") {
-          router.push("/");
-        }
-        setLoading(false);
-      }
+    // Redirect if not admin
+    if (email && userType !== "admin") {
+      router.push("/");
     }
-
-    fetchUserData();
   }, [router]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data } = await axios.get('/api/v2/users');
-      setUsers(data?.data);
+      const { data } = await usersApi.getAll();
+
+      setLoading(false);
+      setUsers(data);
     }
 
     fetchData();
@@ -75,13 +73,13 @@ export default function TableList(): JSX.Element {
   useEffect(() => {
     const fetchSingleData = async () => {
       if (userEmail) {
-        const { data } = await v2Api.get(`/api/v2/users/${userEmail}`);
-        setSingleUser(data?.data);
+        const data = users.filter((user: userProps) => user.email === userEmail)
+        setSingleUser(data[0]);
       }
     }
 
     fetchSingleData();
-  }, [userEmail]);
+  }, [userEmail, users]);
 
   useLayoutEffect(() => {
     const isIndeterminate = selectedUser.length > 0 && selectedUser.length < users.length
@@ -111,10 +109,12 @@ export default function TableList(): JSX.Element {
       fullName: Yup.string().min(3, "Enter minimum of three characters").required('This field is required'),
     }),
     onSubmit: async (values: any) => {
-      const { data } = await axios.patch(`/api/v2/users/${singleUser?.email}`, values);
+      if (!singleUser?.user_id) return;
+    
+      const data = await usersApi.updateUser(singleUser?.user_id, values.fullName);
       if (data.success) {
         setOpenSlideOver(false);
-        setNotification({ status: data.success, message: data.message});
+        setNotification({ status: data.success, message:"User updated successfully!"});
         setOpenModal(true);
         setUpdated(!updated);
       }
@@ -126,7 +126,7 @@ export default function TableList(): JSX.Element {
     const mappedSelected = selectedUser.filter(x => x.user_type !== "admin").map(user => user.user_id);
 
     for (const user of mappedSelected) {
-      await axios.delete(`/api/v2/users/${user}`);
+      await usersApi.delete(user);
     }
     setUpdated(!updated);
     setNotification({ status: true, message: "Deleted successfully"});
@@ -139,10 +139,10 @@ export default function TableList(): JSX.Element {
   const toggleUser = async (userId: string) => {
     setLoading(true);
   
-    const { data } = await v2Api.put(`/api/v2/users/${userId}`);
+    const data = await usersApi.updateStatus(userId);
 
     setUpdated(!updated);
-    setNotification({ status: data.success, message: data.message});
+    setNotification({ status: data.success, message: "Status updated successfully!"});
     setOpenModal(true);
     setLoading(false);
   }
@@ -244,9 +244,9 @@ export default function TableList(): JSX.Element {
                           <td className="whitespace-nowrap py-4 text-right text-sm font-medium sm:pr-3">
                             {user.user_type !== "admin" && <a
                               onClick={() => toggleUser(user.user_id)}
-                              className={`${user?.verification[0]?.status ? "bg-green-500 hover:bg-green-400" : "bg-red-500 hover:bg-red-400"} text-gray-100 hover:text-white rounded py-1 px-2 cursor-pointer`}
+                              className={`${!user?.status ? "bg-green-500 hover:bg-green-400" : "bg-red-500 hover:bg-red-400"} text-gray-100 hover:text-white rounded py-1 px-2 cursor-pointer`}
                             >
-                              {`${user?.verification[0]?.status ? "Activate" : "Deactivate"}`}<span className="sr-only">, {user.full_name}</span>
+                              {`${!user?.status ? "Activate" : "Deactivate"}`}<span className="sr-only">, {user.full_name}</span>
                             </a>}
                           </td>
                         </tr>

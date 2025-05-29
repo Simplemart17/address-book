@@ -1,5 +1,6 @@
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 export function Layout({
   children,
@@ -11,7 +12,11 @@ export function Layout({
   return (
     <>
       <Header />
-      <main className="flex-auto">{children}</main>
+      <main className="flex-auto">
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </main>
       {/* <Footer /> */}
       {showFooter && <Footer />}
     </>

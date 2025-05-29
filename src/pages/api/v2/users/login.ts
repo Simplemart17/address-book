@@ -1,15 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt';
+import { normalizeEmail } from '@/utils/email';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     try {
       const { email, password } = req.body;
 
+      // Normalize email for consistent lookup
+      const normalizedEmail = normalizeEmail(email);
+
       const data = await prisma.users.findUnique({
         where: {
-          email: email
+          email: normalizedEmail
         },
         include: {
           verification: true
@@ -46,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           });
           return;
         }
-        
+
         const check = await bcrypt.compare(password, data.password as string);
 
         if (!check) {

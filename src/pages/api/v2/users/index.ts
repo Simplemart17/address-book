@@ -3,20 +3,34 @@ import { v4 as uuidv4 } from 'uuid';
 import prisma from '@/lib/prisma';
 
 import { generateRandomNumber, hashPassword } from '@/utils';
-import sendEmail from '@/lib/mailer';
+import { sendVerificationEmail } from '@/lib/mailer';
+import { normalizeEmail, validateEmail } from '@/utils/email';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     try {
       const { email, fullName, password } = req.body;
+
+      // Validate email format and check for + aliases in production
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: emailValidation.message
+        });
+      }
+
+      // Normalize email (remove + aliases in production)
+      const normalizedEmail = normalizeEmail(email);
+
       const userType = "user";
       const userId = uuidv4();
       const hashedPassword = await hashPassword(password);
-      
+
       let msg: any;
 
       const body: any = {
-        email,
+        email: normalizedEmail,
         full_name: fullName,
         user_type: userType,
         user_id: userId,
@@ -33,8 +47,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               verification_id: uuidv4()
           }});
 
-          await sendEmail("Verification Code", `<p>${code}</p>`, data.email as string);
-          msg = "Account created successfully";
+          // Send verification email with link instead of code
+          try {
+            const emailResult = await sendVerificationEmail(normalizedEmail, data.user_id, data.full_name);
+            if (emailResult.success) {
+              msg = "Account created successfully. Please check your email to verify your account.";
+            } else {
+              console.error('Failed to send verification email:', emailResult.error);
+              msg = "Account created successfully, but failed to send verification email. Please contact support.";
+            }
+          } catch (emailError) {
+            console.error('Error sending verification email:', emailError);
+            msg = "Account created successfully, but failed to send verification email. Please contact support.";
+          }
         } else {
           data = null;
         }
