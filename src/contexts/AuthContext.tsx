@@ -62,14 +62,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error;
 
-    // check the admin_users table if the data.user_id matches
+    // Check if user is admin
     const admin = await supabase.from("admin_users").select('*').eq('id', data.user?.id).single();
     if (admin.data) {
       user_type = 'admin';
       localStorage.setItem('userType', user_type);
+    } else {
+      // Check if user exists in our users table and is verified
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('verified, user_type')
+        .eq('user_id', data.user?.id)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        throw new Error('Failed to fetch user information');
+      }
+
+      // Check if user is verified
+      if (!userData?.verified) {
+        // Sign out the user since they're not verified
+        await supabase.auth.signOut();
+        throw new Error('Account not verified! Please check your email and verify your account before logging in.');
+      }
+      user_type = userData.user_type || 'user';
     }
 
-    return { ...data, user_type: user_type }
+    return { userId: data.user?.id, user_type: user_type }
   }
 
   const signOut = async () => {
