@@ -1,13 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import prisma from '@/lib/prisma';
 import { sendVerificationEmail } from '@/lib/mailer';
+import { normalizeEmail } from '@/utils/email';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
     try {
       const { email } = req.body;
 
-      const data = await prisma.users.findUnique({ where: { email }});
+      // Normalize email for consistent lookup
+      const normalizedEmail = normalizeEmail(email);
+
+      const data = await prisma.users.findUnique({ where: { email: normalizedEmail }});
 
       if (!data) {
         return res.status(404).json({
@@ -18,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Send verification email with link
       try {
-        const emailResult = await sendVerificationEmail(email as string, data.user_id, data.full_name || undefined);
+        const emailResult = await sendVerificationEmail(normalizedEmail, data.user_id, data.full_name || undefined);
         if (emailResult.success) {
           res.status(200).json({
             success: true,
