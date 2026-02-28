@@ -2,7 +2,7 @@ import { type Metadata } from 'next'
 import { DM_Sans, Inter } from 'next/font/google'
 import clsx from 'clsx'
 
-import '@/styles/tailwind.css'
+import './globals.css'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -35,14 +35,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={clsx(
-        'h-full bg-white antialiased',
+        'h-full bg-slate-50 antialiased',
         inter.variable,
         dmSans.variable,
       )}
     >
-      <body className="flex min-h-full">
-        <div className="flex w-full flex-col">{children}</div>
-      </body>
+      <body className="min-h-full">{children}</body>
     </html>
   )
 }

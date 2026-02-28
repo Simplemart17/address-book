@@ -1,28 +1,21 @@
-import { BackgroundImage } from '@/components/BackgroundImage'
-import { Button } from '@/components/Button'
-import { Container } from '@/components/Container'
-import { Layout } from '@/components/Layout'
+import Link from 'next/link'
 
-export default function NotFound():JSX.Element {
+export default function NotFound() {
   return (
-    <Layout showFooter={false}>
-      <div className="relative flex h-full items-center py-20 sm:py-36">
-        <BackgroundImage className="-top-36 bottom-0" />
-        <Container className="relative flex w-full flex-col items-center">
-          <p className="font-display text-2xl tracking-tight text-blue-900">
-            404
-          </p>
-          <h1 className="mt-4 font-display text-4xl font-medium tracking-tighter text-blue-600 sm:text-5xl">
-            Page not found
-          </h1>
-          <p className="mt-4 text-lg tracking-tight text-blue-900">
-            Sorry, we couldn’t find the page you’re looking for.
-          </p>
-          <Button href="/" className="mt-8">
-            Go back home
-          </Button>
-        </Container>
-      </div>
-    </Layout>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6">
+      <p className="text-sm font-semibold text-violet-600">404</p>
+      <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 font-display sm:text-5xl">
+        Page not found
+      </h1>
+      <p className="mt-4 text-base text-slate-500">
+        Sorry, we couldn&apos;t find the page you&apos;re looking for.
+      </p>
+      <Link
+        href="/"
+        className="mt-8 inline-flex items-center rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-violet-700 transition-colors"
+      >
+        Go back home
+      </Link>
+    </div>
   )
 }
