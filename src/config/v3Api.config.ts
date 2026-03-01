@@ -58,12 +58,12 @@ v3Api.interceptors.response.use(
 // Contacts API methods
 export const contactsApi = {
   getAll: async () => {
-    const response = await v3Api.get('/api/v3/contacts')
+    const response = await v3Api.get('/api/contacts')
     return response.data
   },
 
   getById: async (contactId: string) => {
-    const response = await v3Api.get(`/api/v3/contacts/${contactId}`)
+    const response = await v3Api.get(`/api/contacts/${contactId}`)
     return response.data
   },
 
@@ -75,7 +75,7 @@ export const contactsApi = {
     type: string
     url?: string
   }) => {
-    const response = await v3Api.post('/api/v3/contacts', contactData)
+    const response = await v3Api.post('/api/contacts', contactData)
     return response.data
   },
 
@@ -87,12 +87,12 @@ export const contactsApi = {
     type: string
     url: string
   }>) => {
-    const response = await v3Api.patch(`/api/v3/contacts/${contactId}`, contactData)
+    const response = await v3Api.patch(`/api/contacts/${contactId}`, contactData)
     return response.data
   },
 
   delete: async (contactId: string) => {
-    const response = await v3Api.delete(`/api/v3/contacts/${contactId}`)
+    const response = await v3Api.delete(`/api/contacts/${contactId}`)
     return response.data
   }
 }
@@ -100,32 +100,32 @@ export const contactsApi = {
 // Users API methods
 export const usersApi = {
   getAll: async () => {
-    const response = await v3Api.get('/api/v3/users')
+    const response = await v3Api.get('/api/users')
     return response.data
   },
 
   getById: async (userId: string) => {
-    const response = await v3Api.get(`/api/v3/users/${userId}`)
+    const response = await v3Api.get(`/api/users/${userId}`)
     return response.data
   },
 
   updateStatus: async (userId: string) => {
-    const response = await v3Api.patch(`/api/v3/users/${userId}`)
+    const response = await v3Api.patch(`/api/users/${userId}`)
     return response.data
   },
 
   updateUser: async (userId: string, fullName: string) => {
-    const response = await v3Api.put(`/api/v3/users/${userId}`, { full_name: fullName })
+    const response = await v3Api.put(`/api/users/${userId}`, { full_name: fullName })
     return response.data
   },
 
   create: async (userData: { email: string; fullName: string; password: string }) => {
-    const response = await v3Api.post('/api/v3/users', userData)
+    const response = await v3Api.post('/api/users', userData)
     return response.data
   },
 
   delete: async (userId: string) => {
-    const response = await v3Api.delete(`/api/v3/users/${userId}`)
+    const response = await v3Api.delete(`/api/users/${userId}`)
     return response.data
   }
 }
@@ -136,7 +136,7 @@ export const uploadApi = {
     const formData = new FormData()
     formData.append('file', file)
     
-    const response = await v3Api.post('/api/v3/upload', formData, {
+    const response = await v3Api.post('/api/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }

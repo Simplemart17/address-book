@@ -1,9 +1,7 @@
-import ContactList from "@/components/ContactList";
+'use client'
 
-export default function Contact() {
-  return (
-    <>
-      <ContactList />
-    </>
-  )
+import ContactGrid from '@/components/contacts/ContactGrid'
+
+export default function ContactsPage() {
+  return <ContactGrid />
 }

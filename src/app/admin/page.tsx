@@ -1,9 +1,7 @@
-import TableList from '@/components/TableList'
+'use client'
 
-export default function Admin() {
-  return (
-    <>
-      <TableList />
-    </>
-  )
+import UserTable from '@/components/admin/UserTable'
+
+export default function AdminPage() {
+  return <UserTable />
 }

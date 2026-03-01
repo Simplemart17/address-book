@@ -1,61 +1,52 @@
-import sgMail from '@sendgrid/mail';
+import { Resend } from 'resend'
 
-// Initialize SendGrid with API key
-const apiKey = process.env.SENDGRID_API_KEY;
-if (!apiKey) {
-  throw new Error('SENDGRID_API_KEY environment variable is required');
-}
+let resend: Resend | null = null
 
-sgMail.setApiKey(apiKey);
-
-const fromEmail = process.env.FROM_EMAIL || "noreply@contact.simplemart.dev";
-
-type EmailOptions = {
-  to: string;
-  from: string;
-  subject: string;
-  html: string;
-  text?: string;
+function getResendClient() {
+  if (!resend) {
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      throw new Error('RESEND_API_KEY environment variable is required')
+    }
+    resend = new Resend(apiKey)
+  }
+  return resend
 }
 
 const sendEmail = async (subject: string, body: string, to: string) => {
   try {
-    const msg: EmailOptions = {
-      to,
+    const fromEmail = process.env.FROM_EMAIL || 'noreply@contact.simplemart.dev'
+    const { data, error } = await getResendClient().emails.send({
       from: fromEmail,
+      to,
       subject,
       html: body,
-      text: body.replace(/<[^>]*>/g, ''), // Strip HTML tags for text version
-    };
+      text: body.replace(/<[^>]*>/g, ''),
+    })
 
-    const response = await sgMail.send(msg);
-
-    if (response && response[0]?.statusCode === 202) {
-      return { success: true, messageId: response[0]?.headers?.['x-message-id'] };
+    if (error) {
+      console.error('Resend error:', error)
+      return { success: false, error: error.message }
     }
 
-    return { success: false, error: 'Failed to send email' };
-  } catch (error: any) {
-    console.error('Error sending email:', error);
-
-    if (error.response) {
-      console.error('SendGrid error response:', error.response.body);
-    }
-
-    return {
-      success: false,
-      error: error.message || 'Failed to send email',
-      details: error.response?.body || null
-    };
+    return { success: true, messageId: data?.id }
+  } catch (error: unknown) {
+    console.error('Error sending email:', error)
+    const message =
+      error instanceof Error ? error.message : 'Failed to send email'
+    return { success: false, error: message }
   }
-};
+}
 
-// Function to send verification email with link
-export const sendVerificationEmail = async (email: string, userId: string, fullName?: string) => {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const verificationLink = `${baseUrl}/verify/?verificationId=${userId}`;
+export const sendVerificationEmail = async (
+  email: string,
+  userId: string,
+  fullName?: string,
+) => {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+  const verificationLink = `${baseUrl}/verify/?verificationId=${userId}`
 
-  const subject = 'Verify Your Email Address';
+  const subject = 'Verify Your Email Address'
   const html = `
     <!DOCTYPE html>
     <html>
@@ -109,9 +100,9 @@ export const sendVerificationEmail = async (email: string, userId: string, fullN
       </div>
     </body>
     </html>
-  `;
+  `
 
-  return await sendEmail(subject, html, email);
-};
+  return await sendEmail(subject, html, email)
+}
 
-export default sendEmail;
+export default sendEmail

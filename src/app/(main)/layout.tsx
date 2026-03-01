@@ -1,9 +1,9 @@
-import { Layout } from '@/components/Layout'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 export default function MainLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <Layout>{children}</Layout>
+  return <AuthProvider>{children}</AuthProvider>
 }
