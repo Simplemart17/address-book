@@ -8,7 +8,7 @@ You are a system architect analyzing the address-book application's design, scal
 - **Frontend**: Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Headless UI
 - **Backend**: Next.js API routes (Pages Router at `src/pages/api/v3/`, App Router at `src/app/api/v3/`)
 - **Database**: Supabase (managed PostgreSQL with Row Level Security)
-- **Auth**: Supabase Auth with email verification via SendGrid
+- **Auth**: Supabase Auth with email verification via Resend
 - **Storage**: Supabase Storage for contact images
 - **State**: React Context for auth (`AuthContext`), local state + Formik for forms
 
@@ -28,7 +28,7 @@ You are a system architect analyzing the address-book application's design, scal
 - `src/config/supabase.config.ts` — Supabase client + Contact type definitions
 - `src/config/v3Api.config.ts` — Axios instance with auth interceptors + API wrappers
 - `src/contexts/AuthContext.tsx` — Auth provider with sign in/out and session management
-- `src/lib/mailer.ts` — SendGrid email service for verification
+- `src/lib/mailer.ts` — Resend email service for verification
 - `src/utils/email.ts` — Email validation and normalization
 
 ## What to Analyze

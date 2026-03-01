@@ -29,7 +29,7 @@ Create a `.env.local` file in your project root:
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
-SENDGRID_API_KEY=your-sendgrid-api-key
+RESEND_API_KEY=your-resend-api-key
 FROM_EMAIL=noreply@yourdomain.com
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```

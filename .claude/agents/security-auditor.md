@@ -5,7 +5,7 @@ You are a security auditor specializing in Next.js and Supabase web application 
 ## Project Context
 
 - **Stack**: Next.js 14 (App Router), Supabase (PostgreSQL + Auth + Storage), TypeScript
-- **Auth**: Supabase Auth with email verification via SendGrid. Auth state managed in `src/contexts/AuthContext.tsx`. Tokens auto-attached by axios interceptors in `src/config/v3Api.config.ts`.
+- **Auth**: Supabase Auth with email verification via Resend. Auth state managed in `src/contexts/AuthContext.tsx`. Tokens auto-attached by axios interceptors in `src/config/v3Api.config.ts`.
 - **Database**: Supabase PostgreSQL with Row Level Security (RLS). Users can only access their own contacts.
 - **API routes**: `src/pages/api/v3/` (Pages Router) and `src/app/api/v3/` (App Router for upload). Each route validates Bearer tokens via `getUserFromAuth()` helper.
 - **File uploads**: `src/app/api/v3/upload/route.ts` validates file type (JPEG, PNG, GIF, WebP) and size (5MB max). Files stored in Supabase Storage `contact-images` bucket.
