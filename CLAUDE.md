@@ -25,7 +25,7 @@ No test framework is configured.
 - **UI**: Headless UI v2, Heroicons, clsx
 - **Backend**: App Router route handlers (`src/app/api/`)
 - **Database**: Supabase (PostgreSQL with RLS)
-- **Auth**: Supabase Auth with email verification via SendGrid
+- **Auth**: Supabase Auth with email verification via Resend
 - **Storage**: Supabase Storage (`contact-images` bucket)
 
 ### API Routes
@@ -40,7 +40,7 @@ Shared auth helper: `src/lib/auth.ts` (getUserFromAuth, response helpers)
 
 ### Authentication Flow
 
-1. User registers → Supabase creates auth user → app inserts `contact_users` table row → SendGrid sends verification email
+1. User registers → Supabase creates auth user → app inserts `contact_users` table row → Resend sends verification email
 2. User clicks verification link → `/verify` page confirms → `contact_users.verified` set to true
 3. On login, checks `verified` status and `admin_users` table for role detection
 4. `AuthContext` (`src/contexts/AuthContext.tsx`) provides `useAuth()` hook with `user`, `session`, `userType`, `signIn`, `signOut`
@@ -72,7 +72,7 @@ Shared auth helper: `src/lib/auth.ts` (getUserFromAuth, response helpers)
 - `src/components/` — Organized by feature (ui/, layout/, contacts/, admin/, auth/)
 - `src/contexts/` — React Context (auth state)
 - `src/config/` — Supabase client, API client
-- `src/lib/` — Auth helpers, Zod validations, SendGrid mailer
+- `src/lib/` — Auth helpers, Zod validations, Resend mailer
 - `.claude/agents/` — Custom agent prompts for security, code review, architecture, UI review
 
 ### Design System
@@ -93,6 +93,6 @@ Shared auth helper: `src/lib/auth.ts` (getUserFromAuth, response helpers)
 
 Required (set in `.env.local`):
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase client
-- `SENDGRID_API_KEY`, `FROM_EMAIL` — email verification
+- `RESEND_API_KEY`, `FROM_EMAIL` — email verification
 - `NEXT_PUBLIC_BASE_URL` — base URL for verification links
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase admin operations (user deletion)
