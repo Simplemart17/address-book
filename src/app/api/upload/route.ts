@@ -1,16 +1,18 @@
 import { NextRequest } from 'next/server'
-import { supabase } from '@/config/supabase.config'
-import { v4 as uuidv4 } from 'uuid'
 import {
-  getUserFromAuth,
+  CONTACT_IMAGES_BUCKET,
+  createServerSupabaseClient,
+} from '@/lib/supabase'
+import {
+  requireUser,
   unauthorizedResponse,
   errorResponse,
   successResponse,
 } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return unauthorizedResponse(authError!)
+  const userId = await requireUser()
+  if (!userId) return unauthorizedResponse()
 
   try {
     const formData = await request.formData()
@@ -34,11 +36,12 @@ export async function POST(request: NextRequest) {
     }
 
     const fileExtension = file.name.split('.').pop()
-    const fileName = `${user.id}/${uuidv4()}.${fileExtension}`
+    const fileName = `${userId}/${crypto.randomUUID()}.${fileExtension}`
     const fileBuffer = Buffer.from(await file.arrayBuffer())
 
+    const supabase = createServerSupabaseClient()
     const { error: uploadError } = await supabase.storage
-      .from('contact-images')
+      .from(CONTACT_IMAGES_BUCKET)
       .upload(fileName, fileBuffer, {
         contentType: file.type,
         upsert: false,
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: urlData } = supabase.storage
-      .from('contact-images')
+      .from(CONTACT_IMAGES_BUCKET)
       .getPublicUrl(fileName)
 
     return successResponse({

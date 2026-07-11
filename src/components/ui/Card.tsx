@@ -14,7 +14,7 @@ export default function Card({
   return (
     <div
       className={clsx(
-        'rounded-xl border border-slate-200 bg-white shadow-sm',
+        'rounded-2xl border border-edge bg-surface shadow-card inset-shadow-highlight',
         padding && 'p-6',
         className,
       )}

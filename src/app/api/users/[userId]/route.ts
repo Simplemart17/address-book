@@ -1,51 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/config/supabase.config'
-import { supabaseAdmin } from '@/config/supabase.server'
+import { auth, clerkClient } from '@clerk/nextjs/server'
 import {
-  getUserFromAuth,
   requireAdmin,
   forbiddenResponse,
   unauthorizedResponse,
   errorResponse,
   successResponse,
 } from '@/lib/auth'
+import { mapClerkUser } from '@/lib/clerk-users'
+import {
+  CONTACT_IMAGES_BUCKET,
+  createAdminSupabaseClient,
+} from '@/lib/supabase'
 import { updateUserSchema } from '@/lib/validations'
 
 type RouteParams = { params: Promise<{ userId: string }> }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return unauthorizedResponse(authError!)
+  const { userId: currentUserId, sessionClaims } = await auth()
+  if (!currentUserId) return unauthorizedResponse()
 
   const { userId } = await params
 
   // Users can only view their own profile; admins can view any
-  if (user.id !== userId) {
-    const { data: adminRecord } = await supabase
-      .from('admin_users')
-      .select('id')
-      .eq('id', user.id)
-      .single()
-
-    if (!adminRecord) {
-      return errorResponse('Forbidden', 403)
-    }
+  const isAdmin = sessionClaims?.metadata?.role === 'admin'
+  if (currentUserId !== userId && !isAdmin) {
+    return errorResponse('Forbidden', 403)
   }
 
-  const { data, error } = await supabase
-    .from('contact_users')
-    .select('*')
-    .eq('user_id', userId)
-    .single()
-
-  if (error) return errorResponse('Something went wrong')
-
-  return successResponse({ data })
+  try {
+    const client = await clerkClient()
+    const user = await client.users.getUser(userId)
+    return successResponse({ data: mapClerkUser(user) })
+  } catch {
+    return errorResponse('Something went wrong')
+  }
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { user, error: authError } = await requireAdmin(request)
-  if (!user) {
+  const { userId: adminId, error: authError } = await requireAdmin()
+  if (!adminId) {
     if (authError === 'Forbidden: admin access required')
       return forbiddenResponse()
     return unauthorizedResponse(authError!)
@@ -53,34 +47,33 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const { userId } = await params
 
-  const { data: currentUser, error: fetchError } = await supabase
-    .from('contact_users')
-    .select('status')
-    .eq('user_id', userId)
-    .single()
+  if (userId === adminId) {
+    return errorResponse('You cannot deactivate your own account', 400)
+  }
 
-  if (fetchError) return errorResponse('Something went wrong')
+  try {
+    const client = await clerkClient()
+    const user = await client.users.getUser(userId)
 
-  const { data, error } = await supabase
-    .from('contact_users')
-    .update({ status: !currentUser.status })
-    .eq('user_id', userId)
-    .select()
-    .single()
+    const updated = user.banned
+      ? await client.users.unbanUser(userId)
+      : await client.users.banUser(userId)
 
-  if (error) return errorResponse('Something went wrong')
-
-  return successResponse({ data })
+    return successResponse({ data: mapClerkUser(updated) })
+  } catch {
+    return errorResponse('Something went wrong')
+  }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return unauthorizedResponse(authError!)
+  const { userId: currentUserId, sessionClaims } = await auth()
+  if (!currentUserId) return unauthorizedResponse()
 
   const { userId } = await params
 
-  // Only the user themselves can update their profile
-  if (user.id !== userId) {
+  // Users can update their own profile; admins can update any
+  const isAdmin = sessionClaims?.metadata?.role === 'admin'
+  if (currentUserId !== userId && !isAdmin) {
     return errorResponse('Forbidden', 403)
   }
 
@@ -94,28 +87,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     )
   }
 
-  const updateData: Record<string, unknown> = {}
-  if (result.data.full_name) updateData.full_name = result.data.full_name
-
-  if (Object.keys(updateData).length === 0) {
+  if (!result.data.full_name) {
     return errorResponse('No valid fields to update', 400)
   }
 
-  const { data, error } = await supabase
-    .from('contact_users')
-    .update(updateData)
-    .eq('user_id', userId)
-    .select()
-    .single()
+  const [firstName, ...rest] = result.data.full_name.trim().split(/\s+/)
+  const lastName = rest.join(' ')
 
-  if (error) return errorResponse(error.message, 400)
-
-  return successResponse({ data })
+  try {
+    const client = await clerkClient()
+    const updated = await client.users.updateUser(userId, {
+      firstName,
+      lastName,
+    })
+    return successResponse({ data: mapClerkUser(updated) })
+  } catch {
+    return errorResponse('Failed to update user', 400)
+  }
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const { user, error: authError } = await requireAdmin(request)
-  if (!user) {
+  const { userId: adminId, error: authError } = await requireAdmin()
+  if (!adminId) {
     if (authError === 'Forbidden: admin access required')
       return forbiddenResponse()
     return unauthorizedResponse(authError!)
@@ -123,21 +116,34 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   const { userId } = await params
 
-  // Use admin client for auth user deletion
-  if (supabaseAdmin) {
-    const { error: authDeleteError } =
-      await supabaseAdmin.auth.admin.deleteUser(userId)
-    if (authDeleteError) return errorResponse('Something went wrong')
-  } else {
-    return errorResponse('Admin operations not configured', 500)
+  if (userId === adminId) {
+    return errorResponse('You cannot delete your own account', 400)
   }
 
-  const { error } = await supabase
-    .from('contact_users')
-    .delete()
-    .eq('user_id', userId)
+  try {
+    const client = await clerkClient()
+    await client.users.deleteUser(userId)
+  } catch {
+    return errorResponse('Something went wrong')
+  }
 
-  if (error) return errorResponse('Something went wrong')
+  // Clerk deletion doesn't cascade to Supabase — clean up the user's
+  // contacts and uploaded images with the secret-key client.
+  try {
+    const admin = createAdminSupabaseClient()
+    await admin.from('contacts').delete().eq('user_id', userId)
+
+    const { data: files } = await admin.storage
+      .from(CONTACT_IMAGES_BUCKET)
+      .list(userId)
+    if (files?.length) {
+      await admin.storage
+        .from(CONTACT_IMAGES_BUCKET)
+        .remove(files.map((file) => `${userId}/${file.name}`))
+    }
+  } catch (error) {
+    console.error('Failed to clean up deleted user data:', error)
+  }
 
   return successResponse({ message: 'Deleted successfully' })
 }

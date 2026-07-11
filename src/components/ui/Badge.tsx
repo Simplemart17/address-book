@@ -9,11 +9,11 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  default: 'bg-slate-100 text-slate-700',
-  success: 'bg-emerald-50 text-emerald-700',
-  warning: 'bg-amber-50 text-amber-700',
-  danger: 'bg-rose-50 text-rose-700',
-  violet: 'bg-violet-50 text-violet-700',
+  default: 'bg-white/5 text-fg-muted ring-1 ring-inset ring-white/10',
+  success: 'bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/25',
+  warning: 'bg-amber-400/10 text-amber-300 ring-1 ring-inset ring-amber-400/25',
+  danger: 'bg-rose-400/10 text-rose-300 ring-1 ring-inset ring-rose-400/25',
+  violet: 'bg-violet-400/10 text-violet-300 ring-1 ring-inset ring-violet-400/25',
 }
 
 export default function Badge({

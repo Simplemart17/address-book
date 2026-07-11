@@ -18,7 +18,10 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="relative min-h-screen">
+      <div className="pointer-events-none fixed inset-0 page-glow" aria-hidden />
+      <div className="pointer-events-none fixed inset-0 dot-grid" aria-hidden />
+
       <Sidebar
         mobileOpen={sidebarOpen}
         onMobileClose={() => setSidebarOpen(false)}
@@ -31,7 +34,7 @@ export default function DashboardLayout({
           actions={actions}
         />
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="relative px-4 py-8 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
   )

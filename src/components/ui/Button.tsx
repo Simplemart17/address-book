@@ -26,13 +26,12 @@ type ButtonProps = ButtonAsButton | ButtonAsLink
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-violet-600 text-white hover:bg-violet-700 focus-visible:ring-violet-500 shadow-sm',
+    'bg-primary text-white inset-shadow-highlight shadow-glow-sm hover:bg-primary-hover hover:shadow-glow',
   secondary:
-    'bg-white text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50 focus-visible:ring-violet-500 shadow-sm',
+    'bg-white/5 text-fg border border-edge-strong hover:bg-white/10 hover:border-white/20',
   danger:
-    'bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500 shadow-sm',
-  ghost:
-    'text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus-visible:ring-violet-500',
+    'bg-danger-strong text-white inset-shadow-highlight hover:brightness-110 focus-visible:outline-danger',
+  ghost: 'text-fg-muted hover:text-fg hover:bg-white/5',
 }
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -50,7 +49,7 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const classes = clsx(
-    'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-bright disabled:pointer-events-none disabled:opacity-50',
     variantStyles[variant],
     sizeStyles[size],
     className,

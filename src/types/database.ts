@@ -1,28 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
-
-// Environment variables with validation
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-// Validate required environment variables
-if (!supabaseUrl) {
-  throw new Error(
-    'Missing NEXT_PUBLIC_SUPABASE_URL environment variable. Please add it to your .env.local file.',
-  )
-}
-
-if (!supabaseAnonKey) {
-  throw new Error(
-    'Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable. Please add it to your .env.local file.',
-  )
-}
-
-// Create main Supabase client for client-side operations
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Database types for better TypeScript support
+// Database types for the shared Supabase project. This app owns the
+// "contacts" schema; user_id holds Clerk user ids (TEXT, not UUID).
 export interface Database {
-  public: {
+  __InternalSupabase: {
+    PostgrestVersion: '12'
+  }
+  contacts: {
     Tables: {
       contacts: {
         Row: {
@@ -47,7 +29,7 @@ export interface Database {
           phone: string
           type: string
           url?: string | null
-          user_id: string
+          user_id?: string
         }
         Update: {
           id?: string
@@ -61,6 +43,7 @@ export interface Database {
           url?: string | null
           user_id?: string
         }
+        Relationships: []
       }
     }
     Views: {
@@ -72,9 +55,12 @@ export interface Database {
     Enums: {
       contact_type: 'Friend' | 'Colleague' | 'Mate'
     }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-export type Contact = Database['public']['Tables']['contacts']['Row']
-export type ContactInsert = Database['public']['Tables']['contacts']['Insert']
-export type ContactUpdate = Database['public']['Tables']['contacts']['Update']
+export type Contact = Database['contacts']['Tables']['contacts']['Row']
+export type ContactInsert = Database['contacts']['Tables']['contacts']['Insert']
+export type ContactUpdate = Database['contacts']['Tables']['contacts']['Update']

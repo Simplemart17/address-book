@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A contact management application built with Next.js 16 (App Router), React 19, and Supabase. Users register with email verification, then manage contacts (CRUD) with image uploads. Includes an admin dashboard with a modern violet-themed UI.
+A contact management application built with Next.js 16 (App Router), React 19, Clerk (auth), and Supabase (data). Users sign up via Clerk (built-in email verification), then manage contacts (CRUD) with image uploads. Includes an admin dashboard. Dark-first UI ("the network at night" design system).
 
 ## Commands
 
@@ -24,62 +24,53 @@ No test framework is configured.
 - **Forms**: React Hook Form + Zod (validation schemas in `src/lib/validations.ts`)
 - **UI**: Headless UI v2, Heroicons, clsx
 - **Backend**: App Router route handlers (`src/app/api/`)
-- **Database**: Supabase (PostgreSQL with RLS)
-- **Auth**: Supabase Auth with email verification via Resend
-- **Storage**: Supabase Storage (`contact-images` bucket)
+- **Auth**: Clerk (`@clerk/nextjs`, prebuilt SignIn/SignUp/UserButton, themed via `src/lib/clerk-appearance.ts`)
+- **Database**: Shared Supabase project; this app owns the **`contacts` Postgres schema** (RLS on Clerk JWTs)
+- **Storage**: Supabase Storage (`addressbook-contact-images` bucket)
+
+### Auth Model
+
+- `src/proxy.ts` runs `clerkMiddleware()`: public routes are `/`, `/sign-in`, `/sign-up`; everything else requires a session; `/admin(.*)` and `GET /api/users` additionally require the admin role.
+- Admin role lives in Clerk `publicMetadata.role === 'admin'`, surfaced in session claims via the Clerk dashboard session-token customization (`{ "metadata": "{{user.public_metadata}}" }`). Typed in `src/types/globals.d.ts`.
+- Server helpers in `src/lib/auth.ts`: `requireUser()`, `requireAdmin()` + JSON response helpers.
+- No users table: admin user management (list, ban/unban as "status", edit name, delete) calls Clerk's Backend API (`clerkClient`), mapped to the UI shape in `src/lib/clerk-users.ts`.
+- On user deletion, the route cleans up the user's `contacts` rows and storage folder with the secret-key client.
+
+### Data Layer
+
+- `src/lib/supabase.ts`: `createServerSupabaseClient()` — per-request client with `db: { schema: 'contacts' }` and `accessToken: () => (await auth()).getToken()` (Supabase third-party auth, native Clerk integration — NOT the deprecated JWT template). `createAdminSupabaseClient()` — secret key (RLS bypass), only for deleted-user cleanup.
+- One table: `contacts.contacts` (`user_id TEXT` = Clerk user ID; `UNIQUE (user_id, phone)`; `updated_at` trigger).
+- RLS policies compare `(SELECT auth.jwt()->>'sub')` to `user_id`. Clerk user IDs are TEXT (`user_...`), never UUIDs.
+- Migration: `supabase/migrations/*_addressbook_contacts_schema.sql` — idempotent and namespaced for the shared project (app-prefixed storage policies, no `public` schema objects).
+- Types in `src/types/database.ts` (`Contact`, `ContactInsert`, `ContactUpdate`).
 
 ### API Routes
 
 All API routes use App Router route handlers at `src/app/api/`:
-- `api/contacts/` — CRUD for contacts (auth required)
-- `api/users/` — User management + registration
-- `api/verify/[verificationId]/` — Email verification
-- `api/upload/` — Image uploads (auth required)
-
-Shared auth helper: `src/lib/auth.ts` (getUserFromAuth, response helpers)
-
-### Authentication Flow
-
-1. User registers → Supabase creates auth user → app inserts `contact_users` table row → Resend sends verification email
-2. User clicks verification link → `/verify` page confirms → `contact_users.verified` set to true
-3. On login, checks `verified` status and `admin_users` table for role detection
-4. `AuthContext` (`src/contexts/AuthContext.tsx`) provides `useAuth()` hook with `user`, `session`, `userType`, `signIn`, `signOut`
-5. `v3Api` axios instance (`src/config/v3Api.config.ts`) auto-attaches Bearer tokens and handles 401 refresh
-
-### Data Layer
-
-- **Supabase** is the sole database (managed PostgreSQL with Row Level Security)
-- Tables: `contact_users`, `contacts`, `admin_users`
-- RLS enforces per-user contact isolation
-- File uploads go to Supabase Storage
-- Types defined in `src/config/supabase.config.ts`
+- `api/contacts/` + `api/contacts/[contactId]/` — CRUD, scoped by `user_id` (defense-in-depth on top of RLS)
+- `api/users/` — GET admin list (Clerk Backend API)
+- `api/users/[userId]/` — GET self-or-admin, PATCH ban/unban (admin), PUT name (self-or-admin), DELETE (admin + data cleanup)
+- `api/upload/` — image uploads to `addressbook-contact-images/{userId}/`
 
 ### API Client Pattern
 
-`src/config/v3Api.config.ts` exports typed wrappers: `contactsApi`, `usersApi`, `uploadApi`. Components use these instead of raw axios/fetch.
+`src/lib/api.ts` exports fetch-based wrappers: `contactsApi`, `usersApi`, `uploadApi`. Auth rides on the Clerk session cookie — no token handling. Errors throw `Error(message)`.
 
 ### Component Architecture
 
-- `src/components/ui/` — Reusable UI primitives (Button, Input, Select, Badge, Card, Avatar, Modal, SlideOver, Toast, Spinner, EmptyState)
-- `src/components/layout/` — Dashboard layout (Sidebar, TopBar, DashboardLayout)
+- `src/components/ui/` — Primitives (Button, Input, Select, Badge, Card, Avatar, Modal [generic] + ConfirmModal [default export], SlideOver, ToastProvider/useToast, Spinner, EmptyState, Logo)
+- `src/components/layout/` — Dashboard shell (Sidebar, TopBar, DashboardLayout with page-glow/dot-grid décor)
 - `src/components/contacts/` — Contact features (ContactCard, ContactForm, ContactGrid)
 - `src/components/admin/` — Admin features (UserTable)
-- `src/components/auth/` — Auth forms (LoginForm, RegisterForm)
+- `src/components/landing/` — Landing page hero (HeroCards)
 
-### Key Directories
+### Design System ("the network at night")
 
-- `src/app/` — Pages, layouts, and API route handlers
-- `src/components/` — Organized by feature (ui/, layout/, contacts/, admin/, auth/)
-- `src/contexts/` — React Context (auth state)
-- `src/config/` — Supabase client, API client
-- `src/lib/` — Auth helpers, Zod validations, Resend mailer
-- `.claude/agents/` — Custom agent prompts for security, code review, architecture, UI review
-
-### Design System
-
-- **Colors**: slate-50 background, white surfaces, violet-600 primary accent, emerald-500 success, rose-500 danger
-- **Typography**: Inter (body, `font-sans`), DM Sans (headings, `font-display`)
-- **Layout**: Sidebar navigation (collapsible on mobile) + main content area
+- Dark-first. All tokens in `src/app/globals.css` `@theme`: violet-tinted near-black surfaces (`bg`, `surface`, `surface-2/3`), low-alpha `edge` borders, `fg`/`fg-muted`/`fg-subtle` text, `primary` (violet) with `accent-2` (fuchsia) gradient pair, dark-tuned semantic colors, glow shadow tokens, `fade-up`/`toast-in` keyframes.
+- Custom utilities: `page-glow`, `dot-grid`, `text-gradient`. Gradient is rationed: logo, hero headline span, sidebar active bar, primary-button glow.
+- Glass (backdrop-blur) only on floating layers (TopBar, Modal, SlideOver, toasts, mobile drawer); cards are solid `surface`.
+- **Typography**: Inter (body, `font-sans`), Bricolage Grotesque (display, `font-display`).
+- Clerk components inherit the theme from `<ClerkProvider appearance={clerkAppearance}>` in the root layout — keep `src/lib/clerk-appearance.ts` hex values in sync with `globals.css` tokens.
 
 ## Code Style
 
@@ -91,8 +82,15 @@ Shared auth helper: `src/lib/auth.ts` (getUserFromAuth, response helpers)
 
 ## Environment Variables
 
-Required (set in `.env.local`):
-- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase client
-- `RESEND_API_KEY`, `FROM_EMAIL` — email verification
-- `NEXT_PUBLIC_BASE_URL` — base URL for verification links
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase admin operations (user deletion)
+Required (set in `.env.local`, see `.env.example`):
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` — Clerk
+- `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`, `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/contact-lists`, `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/contact-lists`
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_...`) — shared Supabase project
+- `SUPABASE_SECRET_KEY` (`sb_secret_...`) — deleted-user data cleanup only
+
+Uses the new Supabase API keys — the legacy anon/service_role JWT keys are deprecated. (The Postgres roles `anon`/`authenticated`/`service_role` in the migration SQL are unrelated and still current: the publishable key maps to `anon`, the secret key to `service_role`.)
+
+## Manual Dashboard Setup (once per environment)
+
+1. Clerk: enable Email+Password, activate the Supabase integration (adds `role: "authenticated"` claim), customize session token with `{ "metadata": "{{user.public_metadata}}" }`, set the first admin's `publicMetadata` to `{ "role": "admin" }`.
+2. Supabase: add Clerk under Authentication → Third-Party Auth; add `contacts` to Settings → API → Exposed schemas; apply the migration.
