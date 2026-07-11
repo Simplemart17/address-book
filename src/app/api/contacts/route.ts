@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/config/supabase.config'
+import { createServerSupabaseClient } from '@/lib/supabase'
 import {
-  getUserFromAuth,
+  requireUser,
   unauthorizedResponse,
   errorResponse,
   successResponse,
 } from '@/lib/auth'
 import { createContactSchema } from '@/lib/validations'
 
-export async function GET(request: NextRequest) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return unauthorizedResponse(authError!)
+export async function GET() {
+  const userId = await requireUser()
+  if (!userId) return unauthorizedResponse()
 
+  const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
     .from('contacts')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
   if (error) return errorResponse('Failed to fetch contacts')
@@ -24,8 +25,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return unauthorizedResponse(authError!)
+  const userId = await requireUser()
+  if (!userId) return unauthorizedResponse()
 
   const body = await request.json()
   const result = createContactSchema.safeParse(body)
@@ -46,9 +47,10 @@ export async function POST(request: NextRequest) {
     phone,
     type,
     url: url ?? null,
-    user_id: user.id,
+    user_id: userId,
   }
 
+  const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
     .from('contacts')
     .insert(contactData)
