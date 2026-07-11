@@ -1,42 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/config/supabase.config'
+import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
-export async function getUserFromAuth(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return { user: null, error: 'Authentication required' }
-  }
-
-  const token = authHeader.replace('Bearer ', '')
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token)
-
-  if (error || !user) {
-    return { user: null, error: 'Invalid or expired token' }
-  }
-
-  return { user, error: null }
+export async function requireUser() {
+  const { userId } = await auth()
+  return userId
 }
 
-export async function requireAdmin(request: NextRequest) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return { user: null, error: authError }
+export async function requireAdmin() {
+  const { userId, sessionClaims } = await auth()
+  if (!userId) return { userId: null, error: 'Authentication required' }
 
-  const { data: adminRecord } = await supabase
-    .from('admin_users')
-    .select('id')
-    .eq('id', user.id)
-    .single()
-
-  if (!adminRecord) {
-    return { user: null, error: 'Forbidden: admin access required' }
+  if (sessionClaims?.metadata?.role !== 'admin') {
+    return { userId: null, error: 'Forbidden: admin access required' }
   }
 
-  return { user, error: null }
+  return { userId, error: null }
 }
 
 export function forbiddenResponse(
