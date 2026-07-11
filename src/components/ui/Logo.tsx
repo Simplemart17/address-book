@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import LogoMark from './LogoMark'
 
 interface LogoProps {
   size?: 'sm' | 'md'
@@ -8,14 +9,12 @@ interface LogoProps {
 export default function Logo({ size = 'sm', withWordmark = true }: LogoProps) {
   return (
     <span className="flex items-center gap-2.5">
-      <span
+      <LogoMark
         className={clsx(
-          'flex items-center justify-center rounded-lg bg-linear-to-br from-primary to-accent-2 font-display font-semibold text-white shadow-glow-sm',
-          size === 'sm' ? 'size-8 text-sm' : 'size-10 text-base',
+          'shrink-0 drop-shadow-[0_0_12px_rgba(124,58,237,0.45)]',
+          size === 'sm' ? 'size-8' : 'size-10',
         )}
-      >
-        C
-      </span>
+      />
       {withWordmark && (
         <span
           className={clsx(
