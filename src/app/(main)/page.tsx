@@ -1,61 +1,64 @@
-'use client'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 
-import { useState } from 'react'
-import LoginForm from '@/components/auth/LoginForm'
-import RegisterForm from '@/components/auth/RegisterForm'
+import Button from '@/components/ui/Button'
+import Logo from '@/components/ui/Logo'
+import HeroCards from '@/components/landing/HeroCards'
 
-export default function Home() {
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+export default async function Home() {
+  const { userId } = await auth()
+  if (userId) redirect('/contact-lists')
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:bg-violet-600 lg:px-12">
-        <div className="max-w-md">
-          <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-xl bg-white/20">
-            <span className="text-xl font-bold text-white">C</span>
+    <div className="relative min-h-screen overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 page-glow" aria-hidden />
+      <div className="pointer-events-none fixed inset-0 dot-grid" aria-hidden />
+
+      <header className="relative px-4">
+        <nav className="mx-auto mt-6 flex max-w-5xl items-center justify-between rounded-2xl border border-edge bg-surface/60 px-5 py-3 backdrop-blur-xl">
+          <Logo />
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" href="/sign-in">
+              Sign in
+            </Button>
+            <Button href="/sign-up">Get started</Button>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white font-display">
-            ContactRef
+        </nav>
+      </header>
+
+      <main className="relative px-4">
+        <section className="mx-auto max-w-3xl pb-16 pt-24 text-center">
+          <p className="mx-auto w-fit rounded-full border border-edge bg-white/4 px-3 py-1 text-xs text-fg-muted">
+            Your network, organized
+          </p>
+          <h1 className="mt-6 font-display text-5xl font-semibold tracking-tight text-fg sm:text-6xl">
+            Every contact, exactly{' '}
+            <span className="text-gradient">where you left them</span>
           </h1>
-          <p className="mt-4 text-lg text-violet-100">
-            The effective way to manage your contacts. Keep your network
-            organized and accessible from anywhere.
+          <p className="mx-auto mt-6 max-w-xl text-lg text-fg-muted">
+            ContactRef keeps the people in your life one search away — names,
+            numbers, and addresses in a single quiet place.
           </p>
-        </div>
-      </div>
-
-      {/* Right panel — form */}
-      <div className="flex w-full flex-col justify-center px-6 py-12 lg:w-1/2 lg:px-12">
-        <div className="mx-auto w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
-              <span className="text-sm font-bold text-white">C</span>
-            </div>
-            <span className="text-lg font-bold tracking-tight text-slate-900 font-display">
-              ContactRef
-            </span>
+          <div className="mt-8 flex items-center justify-center gap-3">
+            <Button href="/sign-up" size="lg">
+              Start free
+            </Button>
+            <Button href="/sign-in" variant="secondary" size="lg">
+              Sign in
+            </Button>
           </div>
+        </section>
 
-          <h2 className="text-2xl font-bold text-slate-900 font-display">
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            {mode === 'login'
-              ? 'Sign in to access your contacts'
-              : 'Get started with your free account'}
-          </p>
+        <section className="animate-fade-up relative pb-24">
+          <HeroCards />
+        </section>
+      </main>
 
-          <div className="mt-8">
-            {mode === 'login' ? (
-              <LoginForm onSwitchToRegister={() => setMode('register')} />
-            ) : (
-              <RegisterForm onSwitchToLogin={() => setMode('login')} />
-            )}
-          </div>
-        </div>
-      </div>
+      <footer className="relative border-t border-edge px-4 py-6">
+        <p className="mx-auto max-w-5xl text-xs text-fg-subtle">
+          ContactRef — the effective way to manage your contacts.
+        </p>
+      </footer>
     </div>
   )
 }

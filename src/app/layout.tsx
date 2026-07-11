@@ -1,7 +1,10 @@
 import { type Metadata } from 'next'
-import { DM_Sans, Inter } from 'next/font/google'
+import { Bricolage_Grotesque, Inter } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
 import clsx from 'clsx'
 
+import { clerkAppearance } from '@/lib/clerk-appearance'
+import { ToastProvider } from '@/components/ui/ToastProvider'
 import './globals.css'
 
 const inter = Inter({
@@ -10,11 +13,11 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-const dmSans = DM_Sans({
+const bricolage = Bricolage_Grotesque({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
+  weight: ['500', '600', '700'],
   display: 'swap',
-  variable: '--font-dm-sans',
+  variable: '--font-bricolage',
 })
 
 export const metadata: Metadata = {
@@ -32,15 +35,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html
-      lang="en"
-      className={clsx(
-        'h-full bg-slate-50 antialiased',
-        inter.variable,
-        dmSans.variable,
-      )}
-    >
-      <body className="min-h-full">{children}</body>
-    </html>
+    <ClerkProvider appearance={clerkAppearance}>
+      <html
+        lang="en"
+        className={clsx('h-full antialiased', inter.variable, bricolage.variable)}
+      >
+        <body className="min-h-full">
+          <ToastProvider>{children}</ToastProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/config/supabase.config'
+import { createServerSupabaseClient } from '@/lib/supabase'
 import {
-  getUserFromAuth,
+  requireUser,
   unauthorizedResponse,
   errorResponse,
   successResponse,
@@ -11,18 +11,19 @@ import { updateContactSchema } from '@/lib/validations'
 type RouteParams = { params: Promise<{ contactId: string }> }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return unauthorizedResponse(authError!)
+  const userId = await requireUser()
+  if (!userId) return unauthorizedResponse()
 
   const { contactId } = await params
 
   if (!contactId) return errorResponse('Contact ID is required', 400)
 
+  const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
     .from('contacts')
     .select('*')
     .eq('id', contactId)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .single()
 
   if (error) {
@@ -36,8 +37,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return unauthorizedResponse(authError!)
+  const userId = await requireUser()
+  if (!userId) return unauthorizedResponse()
 
   const { contactId } = await params
 
@@ -61,11 +62,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (result.data.type) updateData.type = result.data.type
   if (result.data.url !== undefined) updateData.url = result.data.url
 
+  const supabase = createServerSupabaseClient()
   const { data, error } = await supabase
     .from('contacts')
     .update(updateData)
     .eq('id', contactId)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .select()
     .single()
 
@@ -83,18 +85,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const { user, error: authError } = await getUserFromAuth(request)
-  if (!user) return unauthorizedResponse(authError!)
+  const userId = await requireUser()
+  if (!userId) return unauthorizedResponse()
 
   const { contactId } = await params
 
   if (!contactId) return errorResponse('Contact ID is required', 400)
 
+  const supabase = createServerSupabaseClient()
   const { error } = await supabase
     .from('contacts')
     .delete()
     .eq('id', contactId)
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
 
   if (error) return errorResponse('Failed to delete contact')
 
