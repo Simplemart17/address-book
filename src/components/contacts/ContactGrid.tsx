@@ -2,17 +2,36 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline'
-import { contactsApi } from '@/config/v3Api.config'
+import { contactsApi } from '@/lib/api'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import ContactCard from './ContactCard'
 import ContactForm from './ContactForm'
 import SlideOver from '@/components/ui/SlideOver'
-import Modal from '@/components/ui/Modal'
-import Toast from '@/components/ui/Toast'
+import ConfirmModal from '@/components/ui/Modal'
+import Input from '@/components/ui/Input'
 import EmptyState from '@/components/ui/EmptyState'
-import Spinner from '@/components/ui/Spinner'
 import Button from '@/components/ui/Button'
-import type { Contact } from '@/config/supabase.config'
+import { useToast } from '@/components/ui/ToastProvider'
+import type { Contact } from '@/types/database'
+
+function SkeletonCard() {
+  return (
+    <div className="animate-pulse rounded-2xl border border-edge bg-surface p-5">
+      <div className="flex items-center gap-3">
+        <div className="size-12 rounded-full bg-white/6" />
+        <div className="space-y-2">
+          <div className="h-3 w-28 rounded bg-white/6" />
+          <div className="h-4 w-16 rounded-full bg-white/6" />
+        </div>
+      </div>
+      <div className="mt-5 space-y-2.5">
+        <div className="h-3 w-4/5 rounded bg-white/6" />
+        <div className="h-3 w-3/5 rounded bg-white/6" />
+        <div className="h-3 w-2/3 rounded bg-white/6" />
+      </div>
+    </div>
+  )
+}
 
 export default function ContactGrid() {
   const [contacts, setContacts] = useState<Contact[]>([])
@@ -27,19 +46,19 @@ export default function ContactGrid() {
   const [deletingContact, setDeletingContact] = useState<Contact | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
-  const [toast, setToast] = useState({ show: false, message: '', variant: 'success' as 'success' | 'error' })
+  const { toast } = useToast()
 
   const fetchContacts = useCallback(async () => {
     try {
       const response = await contactsApi.getAll()
-      setContacts(response.data)
-      setFiltered(response.data)
+      setContacts(response.data as Contact[])
+      setFiltered(response.data as Contact[])
     } catch {
-      showToast('Failed to fetch contacts', 'error')
+      toast('Failed to fetch contacts', 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     fetchContacts()
@@ -60,11 +79,6 @@ export default function ContactGrid() {
       )
     }
   }, [search, contacts])
-
-  const showToast = (message: string, variant: 'success' | 'error' = 'success') => {
-    setToast({ show: true, message, variant })
-    setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000)
-  }
 
   const handleCreate = () => {
     setEditingContact(null)
@@ -87,12 +101,12 @@ export default function ContactGrid() {
 
     try {
       await contactsApi.delete(deletingContact.id)
-      showToast('Contact deleted successfully')
+      toast('Contact deleted successfully')
       setDeleteModalOpen(false)
       setDeletingContact(null)
       fetchContacts()
     } catch {
-      showToast('Failed to delete contact', 'error')
+      toast('Failed to delete contact', 'error')
     } finally {
       setDeleteLoading(false)
     }
@@ -109,17 +123,17 @@ export default function ContactGrid() {
     try {
       if (editingContact) {
         await contactsApi.update(editingContact.id, data)
-        showToast('Contact updated successfully')
+        toast('Contact updated successfully')
       } else {
         await contactsApi.create(data)
-        showToast('Contact created successfully')
+        toast('Contact created successfully')
       }
 
       setSlideOverOpen(false)
       setEditingContact(null)
       fetchContacts()
     } catch {
-      showToast('Failed to save contact', 'error')
+      toast('Failed to save contact', 'error')
     }
   }
 
@@ -128,29 +142,29 @@ export default function ContactGrid() {
       title="Contacts"
       actions={
         <Button onClick={handleCreate} size="sm">
-          <PlusIcon className="h-4 w-4" />
+          <PlusIcon className="size-4" />
           Add Contact
         </Button>
       }
     >
       {/* Search */}
-      <div className="mb-6">
-        <div className="relative max-w-sm">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search contacts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="block w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-          />
-        </div>
+      <div className="mb-6 max-w-sm">
+        <Input
+          type="text"
+          name="contact-search"
+          placeholder="Search contacts..."
+          icon={<MagnifyingGlassIcon />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Spinner size="lg" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -165,13 +179,18 @@ export default function ContactGrid() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((contact) => (
-            <ContactCard
+          {filtered.map((contact, i) => (
+            <div
               key={contact.id}
-              contact={contact}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+              className="animate-fade-up"
+              style={{ animationDelay: `${Math.min(i, 11) * 40}ms` }}
+            >
+              <ContactCard
+                contact={contact}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -196,7 +215,7 @@ export default function ContactGrid() {
       </SlideOver>
 
       {/* Delete confirmation */}
-      <Modal
+      <ConfirmModal
         open={deleteModalOpen}
         onClose={() => {
           setDeleteModalOpen(false)
@@ -208,14 +227,6 @@ export default function ContactGrid() {
         onConfirm={confirmDelete}
         loading={deleteLoading}
         variant="danger"
-      />
-
-      {/* Toast */}
-      <Toast
-        show={toast.show}
-        onClose={() => setToast((prev) => ({ ...prev, show: false }))}
-        message={toast.message}
-        variant={toast.variant}
       />
     </DashboardLayout>
   )

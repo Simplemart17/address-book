@@ -4,24 +4,16 @@ import { useEffect, useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { usersApi } from '@/config/v3Api.config'
+import { usersApi } from '@/lib/api'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import Badge from '@/components/ui/Badge'
 import Avatar from '@/components/ui/Avatar'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
-import Modal from '@/components/ui/Modal'
-import Toast from '@/components/ui/Toast'
+import ConfirmModal, { Modal } from '@/components/ui/Modal'
 import Spinner from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
-import {
-  Dialog,
-  DialogPanel,
-  DialogTitle,
-  Transition,
-  TransitionChild,
-} from '@headlessui/react'
-import { Fragment } from 'react'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface User {
   id: string
@@ -50,11 +42,7 @@ export default function UserTable() {
 
   const [editModal, setEditModal] = useState<User | null>(null)
 
-  const [toast, setToast] = useState({
-    show: false,
-    message: '',
-    variant: 'success' as 'success' | 'error',
-  })
+  const { toast } = useToast()
 
   const {
     register,
@@ -68,34 +56,26 @@ export default function UserTable() {
   const fetchUsers = useCallback(async () => {
     try {
       const response = await usersApi.getAll()
-      setUsers(response.data)
+      setUsers(response.data as User[])
     } catch {
-      showToast('Failed to fetch users', 'error')
+      toast('Failed to fetch users', 'error')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
 
-  const showToast = (
-    message: string,
-    variant: 'success' | 'error' = 'success',
-  ) => {
-    setToast({ show: true, message, variant })
-    setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 3000)
-  }
-
   const handleToggleStatus = async (user: User) => {
     setActionLoading(user.user_id)
     try {
       await usersApi.updateStatus(user.user_id)
-      showToast(`User status updated`)
+      toast('User status updated')
       fetchUsers()
     } catch {
-      showToast('Failed to update status', 'error')
+      toast('Failed to update status', 'error')
     } finally {
       setActionLoading(null)
     }
@@ -111,11 +91,11 @@ export default function UserTable() {
 
     try {
       await usersApi.updateUser(editModal.user_id, data.full_name)
-      showToast('User updated successfully')
+      toast('User updated successfully')
       setEditModal(null)
       fetchUsers()
     } catch {
-      showToast('Failed to update user', 'error')
+      toast('Failed to update user', 'error')
     }
   }
 
@@ -125,11 +105,11 @@ export default function UserTable() {
 
     try {
       await usersApi.delete(deleteModal.user_id)
-      showToast('User deleted successfully')
+      toast('User deleted successfully')
       setDeleteModal(null)
       fetchUsers()
     } catch {
-      showToast('Failed to delete user', 'error')
+      toast('Failed to delete user', 'error')
     } finally {
       setDeleteLoading(false)
     }
@@ -144,39 +124,42 @@ export default function UserTable() {
       ) : users.length === 0 ? (
         <EmptyState title="No users" description="No users have registered yet" />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-edge bg-surface shadow-card">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+            <table className="min-w-full divide-y divide-edge">
+              <thead className="bg-white/3">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-fg-subtle">
                     User
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-fg-subtle">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-fg-subtle">
                     Verified
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-fg-subtle">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-fg-subtle">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-edge">
                 {users.map((user) => (
-                  <tr key={user.user_id} className="hover:bg-slate-50">
+                  <tr
+                    key={user.user_id}
+                    className="transition-colors hover:bg-white/3"
+                  >
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center gap-3">
                         <Avatar name={user.full_name} size="sm" />
                         <div>
-                          <p className="text-sm font-medium text-slate-900">
+                          <p className="text-sm font-medium text-fg">
                             {user.full_name}
                           </p>
-                          <p className="text-sm text-slate-500">{user.email}</p>
+                          <p className="text-sm text-fg-muted">{user.email}</p>
                         </div>
                       </div>
                     </td>
@@ -191,7 +174,7 @@ export default function UserTable() {
                       </Badge>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="text-sm text-slate-600 capitalize">
+                      <span className="text-sm capitalize text-fg-muted">
                         {user.user_type}
                       </span>
                     </td>
@@ -230,70 +213,34 @@ export default function UserTable() {
       )}
 
       {/* Edit Modal */}
-      <Transition show={!!editModal} as={Fragment}>
-        <Dialog
-          as="div"
-          className="relative z-50"
-          onClose={() => setEditModal(null)}
-        >
-          <TransitionChild
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-sm" />
-          </TransitionChild>
-
-          <div className="fixed inset-0 z-10 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4">
-              <TransitionChild
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-xl bg-white p-6 shadow-xl transition-all">
-                  <DialogTitle className="text-lg font-semibold text-slate-900">
-                    Edit User
-                  </DialogTitle>
-                  <form
-                    onSubmit={handleSubmit(handleEditSubmit)}
-                    className="mt-4 space-y-4"
-                  >
-                    <Input
-                      label="Full name"
-                      error={errors.full_name?.message}
-                      {...register('full_name')}
-                    />
-                    <div className="flex justify-end gap-3">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => setEditModal(null)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit" loading={isSubmitting}>
-                        Save
-                      </Button>
-                    </div>
-                  </form>
-                </DialogPanel>
-              </TransitionChild>
-            </div>
+      <Modal
+        open={!!editModal}
+        onClose={() => setEditModal(null)}
+        title="Edit User"
+      >
+        <form onSubmit={handleSubmit(handleEditSubmit)} className="space-y-4">
+          <Input
+            label="Full name"
+            error={errors.full_name?.message}
+            {...register('full_name')}
+          />
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditModal(null)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" loading={isSubmitting}>
+              Save
+            </Button>
           </div>
-        </Dialog>
-      </Transition>
+        </form>
+      </Modal>
 
       {/* Delete Modal */}
-      <Modal
+      <ConfirmModal
         open={!!deleteModal}
         onClose={() => setDeleteModal(null)}
         title="Delete User"
@@ -302,14 +249,6 @@ export default function UserTable() {
         onConfirm={handleDelete}
         loading={deleteLoading}
         variant="danger"
-      />
-
-      {/* Toast */}
-      <Toast
-        show={toast.show}
-        onClose={() => setToast((prev) => ({ ...prev, show: false }))}
-        message={toast.message}
-        variant={toast.variant}
       />
     </DashboardLayout>
   )
