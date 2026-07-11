@@ -14,9 +14,10 @@ import {
 } from '@heroicons/react/24/outline'
 import clsx from 'clsx'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Fragment } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useClerk, useUser } from '@clerk/nextjs'
+import Logo from '@/components/ui/Logo'
 
 interface SidebarProps {
   mobileOpen: boolean
@@ -25,13 +26,10 @@ interface SidebarProps {
 
 export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
-  const { signOut, userType } = useAuth()
+  const { user } = useUser()
+  const { signOut } = useClerk()
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.push('/')
-  }
+  const isAdmin = user?.publicMetadata?.role === 'admin'
 
   const navigation = [
     {
@@ -39,7 +37,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
       href: '/contact-lists',
       icon: UserGroupIcon,
     },
-    ...(userType === 'admin'
+    ...(isAdmin
       ? [
           {
             name: 'Admin',
@@ -53,13 +51,8 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <div className="flex h-16 shrink-0 items-center px-6">
-        <Link href="/contact-lists" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
-            <span className="text-sm font-bold text-white">C</span>
-          </div>
-          <span className="text-lg font-bold tracking-tight text-slate-900 font-display">
-            ContactRef
-          </span>
+        <Link href="/contact-lists" className="rounded-lg">
+          <Logo />
         </Link>
       </div>
 
@@ -72,18 +65,24 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               href={item.href}
               onClick={onMobileClose}
               className={clsx(
-                'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-violet-50 text-violet-700'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                  ? 'bg-white/6 text-fg'
+                  : 'text-fg-muted hover:bg-white/4 hover:text-fg',
               )}
             >
+              {isActive && (
+                <span
+                  className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-linear-to-b from-primary-bright to-accent-2"
+                  aria-hidden
+                />
+              )}
               <item.icon
                 className={clsx(
-                  'h-5 w-5 shrink-0',
+                  'size-5 shrink-0',
                   isActive
-                    ? 'text-violet-600'
-                    : 'text-slate-400 group-hover:text-slate-500',
+                    ? 'text-primary-bright'
+                    : 'text-fg-subtle group-hover:text-fg-muted',
                 )}
                 aria-hidden="true"
               />
@@ -93,13 +92,13 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
         })}
       </nav>
 
-      <div className="border-t border-slate-200 p-3">
+      <div className="border-t border-edge p-3">
         <button
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+          onClick={() => signOut({ redirectUrl: '/sign-in' })}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-white/4 hover:text-fg"
         >
           <ArrowLeftStartOnRectangleIcon
-            className="h-5 w-5 text-slate-400"
+            className="size-5 text-fg-subtle"
             aria-hidden="true"
           />
           Sign out
@@ -126,7 +125,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-sm" />
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
           </TransitionChild>
 
           <div className="fixed inset-0 flex">
@@ -139,15 +138,15 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              <DialogPanel className="relative flex w-72 flex-col bg-white">
+              <DialogPanel className="relative flex w-72 flex-col border-r border-edge bg-surface-2/95 backdrop-blur-xl">
                 <div className="absolute right-0 top-0 flex pt-4 pr-3">
                   <button
                     type="button"
-                    className="rounded-md text-slate-400 hover:text-slate-500"
+                    className="rounded-md text-fg-subtle transition-colors hover:text-fg"
                     onClick={onMobileClose}
                   >
                     <span className="sr-only">Close sidebar</span>
-                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    <XMarkIcon className="size-6" aria-hidden="true" />
                   </button>
                 </div>
                 {sidebarContent}
@@ -159,7 +158,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }: SidebarProps) {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex grow flex-col border-r border-slate-200 bg-white">
+        <div className="flex grow flex-col border-r border-edge bg-bg/70 backdrop-blur-md">
           {sidebarContent}
         </div>
       </div>

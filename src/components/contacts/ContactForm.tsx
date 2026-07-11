@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import Image from 'next/image'
+import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
-import { uploadApi } from '@/config/v3Api.config'
-import type { Contact } from '@/config/supabase.config'
+import { uploadApi } from '@/lib/api'
+import type { Contact } from '@/types/database'
 
 const contactSchema = z.object({
   fullName: z.string().min(1, 'Full name is required'),
@@ -40,6 +42,7 @@ export default function ContactForm({
   onCancel,
 }: ContactFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
@@ -75,6 +78,18 @@ export default function ContactForm({
     }
   }, [contact, reset])
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
+
+  const handleFileChange = (file: File | null) => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setImageFile(file)
+    setPreviewUrl(file ? URL.createObjectURL(file) : null)
+  }
+
   const handleFormSubmit = async (data: ContactFormData) => {
     setError('')
     try {
@@ -90,19 +105,14 @@ export default function ContactForm({
       await onSubmit({ ...data, url })
     } catch (err: unknown) {
       setUploading(false)
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { message?: string } } }
-        setError(axiosErr.response?.data?.message || 'Something went wrong')
-      } else {
-        setError('Something went wrong')
-      }
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     }
   }
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
           {error}
         </div>
       )}
@@ -145,15 +155,52 @@ export default function ContactForm({
       />
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-700">
+        <span className="mb-1.5 block text-sm font-medium text-fg-muted">
           Photo (optional)
-        </label>
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
-          onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-          className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-700 hover:file:bg-violet-100"
-        />
+        </span>
+        {imageFile && previewUrl ? (
+          <div className="flex items-center gap-3 rounded-xl border border-edge bg-white/3 px-4 py-3">
+            <Image
+              src={previewUrl}
+              alt="Selected photo preview"
+              width={40}
+              height={40}
+              unoptimized
+              className="size-10 rounded-full object-cover ring-1 ring-white/10"
+            />
+            <span className="flex-1 truncate text-sm text-fg">
+              {imageFile.name}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleFileChange(null)}
+              className="rounded-lg p-1.5 text-fg-subtle transition-colors hover:bg-white/10 hover:text-fg"
+              aria-label="Remove selected photo"
+            >
+              <XMarkIcon className="size-5" />
+            </button>
+          </div>
+        ) : (
+          <label
+            htmlFor="contact-photo"
+            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-edge-strong bg-white/3 px-6 py-8 text-center transition-colors hover:border-primary-bright/50 hover:bg-primary/5"
+          >
+            <PhotoIcon className="size-8 text-fg-subtle" aria-hidden="true" />
+            <span className="text-sm text-fg-muted">
+              Click to upload a photo
+            </span>
+            <span className="text-xs text-fg-subtle">
+              JPEG, PNG, GIF or WebP
+            </span>
+            <input
+              id="contact-photo"
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+              className="sr-only"
+            />
+          </label>
+        )}
       </div>
 
       <div className="flex gap-3 pt-2">
