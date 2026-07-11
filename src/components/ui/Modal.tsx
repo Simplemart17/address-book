@@ -7,7 +7,11 @@ import {
   Transition,
   TransitionChild,
 } from '@headlessui/react'
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import {
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+} from '@heroicons/react/24/outline'
+import clsx from 'clsx'
 import { Fragment } from 'react'
 import Button from './Button'
 
@@ -15,23 +19,12 @@ interface ModalProps {
   open: boolean
   onClose: () => void
   title: string
-  message: string
-  confirmLabel?: string
-  onConfirm: () => void
-  loading?: boolean
-  variant?: 'danger' | 'primary'
+  children: React.ReactNode
+  size?: 'md' | 'lg'
 }
 
-export default function Modal({
-  open,
-  onClose,
-  title,
-  message,
-  confirmLabel = 'Confirm',
-  onConfirm,
-  loading = false,
-  variant = 'danger',
-}: ModalProps) {
+// Generic content modal — glass panel over a dimmed backdrop.
+export function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
   return (
     <Transition show={open} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -44,11 +37,11 @@ export default function Modal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-slate-900/25 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
         </TransitionChild>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+          <div className="flex min-h-full items-end justify-center p-4 sm:items-center">
             <TransitionChild
               as={Fragment}
               enter="ease-out duration-300"
@@ -58,53 +51,87 @@ export default function Modal({
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <DialogPanel className="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mx-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-rose-100 sm:mx-0 sm:h-10 sm:w-10">
-                      <ExclamationTriangleIcon
-                        className="h-6 w-6 text-rose-600"
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                      <DialogTitle
-                        as="h3"
-                        className="text-base font-semibold text-slate-900"
-                      >
-                        {title}
-                      </DialogTitle>
-                      <div className="mt-2">
-                        <p className="text-sm text-slate-500">{message}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                  <Button
-                    variant={variant}
-                    size="sm"
-                    onClick={onConfirm}
-                    loading={loading}
-                    className="w-full sm:ml-3 sm:w-auto"
-                  >
-                    {confirmLabel}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={onClose}
-                    disabled={loading}
-                    className="mt-3 w-full sm:mt-0 sm:w-auto"
-                  >
-                    Cancel
-                  </Button>
-                </div>
+              <DialogPanel
+                className={clsx(
+                  'w-full transform rounded-2xl border border-edge bg-surface-2/90 p-6 text-left shadow-elevated inset-shadow-highlight backdrop-blur-xl transition-all sm:my-8',
+                  size === 'lg' ? 'max-w-lg' : 'max-w-md',
+                )}
+              >
+                <DialogTitle
+                  as="h3"
+                  className="font-display text-lg font-semibold text-fg"
+                >
+                  {title}
+                </DialogTitle>
+                <div className="mt-4">{children}</div>
               </DialogPanel>
             </TransitionChild>
           </div>
         </div>
       </Dialog>
     </Transition>
+  )
+}
+
+interface ConfirmModalProps {
+  open: boolean
+  onClose: () => void
+  title: string
+  message: string
+  confirmLabel?: string
+  onConfirm: () => void
+  loading?: boolean
+  variant?: 'danger' | 'primary'
+}
+
+// Confirmation dialog built on Modal.
+export default function ConfirmModal({
+  open,
+  onClose,
+  title,
+  message,
+  confirmLabel = 'Confirm',
+  onConfirm,
+  loading = false,
+  variant = 'danger',
+}: ConfirmModalProps) {
+  return (
+    <Modal open={open} onClose={onClose} title={title}>
+      <div className="flex items-start gap-4">
+        <div
+          className={clsx(
+            'flex size-10 shrink-0 items-center justify-center rounded-full',
+            variant === 'danger'
+              ? 'bg-danger/15 text-danger'
+              : 'bg-primary/15 text-primary-bright',
+          )}
+        >
+          {variant === 'danger' ? (
+            <ExclamationTriangleIcon className="size-6" aria-hidden="true" />
+          ) : (
+            <InformationCircleIcon className="size-6" aria-hidden="true" />
+          )}
+        </div>
+        <p className="pt-2 text-sm text-fg-muted">{message}</p>
+      </div>
+      <div className="mt-6 flex flex-row-reverse gap-3">
+        <Button
+          variant={variant}
+          size="sm"
+          onClick={onConfirm}
+          loading={loading}
+        >
+          {confirmLabel}
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onClose}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+      </div>
+    </Modal>
   )
 }
