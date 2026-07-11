@@ -8,14 +8,14 @@ interface SpinnerProps {
 const sizeStyles = {
   sm: 'h-4 w-4 border-2',
   md: 'h-8 w-8 border-2',
-  lg: 'h-12 w-12 border-3',
+  lg: 'h-12 w-12 border-[3px]',
 }
 
 export default function Spinner({ size = 'md', className }: SpinnerProps) {
   return (
     <div
       className={clsx(
-        'animate-spin rounded-full border-violet-600 border-t-transparent',
+        'animate-spin rounded-full border-white/15 border-t-primary-bright',
         sizeStyles[size],
         className,
       )}
