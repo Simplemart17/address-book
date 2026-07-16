@@ -1,7 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)'])
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/privacy',
+  '/terms',
+])
 const isAdminPageRoute = createRouteMatcher(['/admin(.*)'])
 // Only the exact /api/users list is admin-gated here; /api/users/[userId]
 // does fine-grained self-or-admin checks in the handler.

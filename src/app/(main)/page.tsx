@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 
 import Button from '@/components/ui/Button'
 import Logo from '@/components/ui/Logo'
@@ -55,9 +56,17 @@ export default async function Home() {
       </main>
 
       <footer className="relative border-t border-edge px-4 py-6">
-        <p className="mx-auto max-w-5xl text-xs text-fg-subtle">
-          ContactRef — the effective way to manage your contacts.
-        </p>
+        <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-2 text-xs text-fg-subtle sm:flex-row sm:items-center">
+          <p>ContactRef — the effective way to manage your contacts.</p>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy" className="hover:text-fg-muted">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-fg-muted">
+              Terms
+            </Link>
+          </div>
+        </div>
       </footer>
     </div>
   )
