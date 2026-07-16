@@ -20,13 +20,36 @@ const bricolage = Bricolage_Grotesque({
   variable: '--font-bricolage',
 })
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL
+  ? new URL(process.env.NEXT_PUBLIC_APP_URL)
+  : process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? new URL(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
+    : new URL('http://localhost:3000')
+
+const siteName = 'ContactRef'
+const siteTitle = 'ContactRef - Effective way to manage your contacts'
+const siteDescription =
+  'A robust way to manage your contacts with the address book service'
+
 export const metadata: Metadata = {
+  metadataBase: siteUrl,
   title: {
     template: '%s - ContactRef',
-    default: 'ContactRef - Effective way to manage your contacts',
+    default: siteTitle,
   },
-  description:
-    'A robust way to manage your contacts with the address book service',
+  description: siteDescription,
+  openGraph: {
+    type: 'website',
+    siteName,
+    title: siteTitle,
+    description: siteDescription,
+    url: siteUrl,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteTitle,
+    description: siteDescription,
+  },
 }
 
 export default function RootLayout({
